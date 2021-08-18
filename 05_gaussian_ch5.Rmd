@@ -1,0 +1,358 @@
+---
+title: "Chapter 5"
+author: "Randy"
+date: "8/5/2021"
+output: html_document
+---
+
+# Model Selection and Adaptation of Hyperparameters
+
+## 5.1 The Model Selection Problem
+
+$$
+k(\pmb x_p, \pmb x_q) = \sigma_f^2 \exp \big( − \frac 1 2 (\pmb x_p − \pmb x_q)^{\top}M(\pmb x_p − \pmb x_q)\big) + \sigma_n^2\sigma_{pq}\ \ \ \ \ (5.1)
+$$
+
+$\theta  = (\{M\},\ \sigma_f^2,\ \sigma_n^2)^{\top}$ is a vector containing all the hyperparameters, and
+$\{M\}$ denotes the parameters in the symmetric matrix $M$. 
+
+$$
+M_1 = \pmb {\mathcal l}^{−2}I, \ \ \ \ (5.2a)\\
+M_2 = diag(\pmb {\mathcal l}  )^{−2}, \ \ \ \ (5.2b)\\
+M_3 = \Lambda \Lambda ^{\top} + diag(\pmb {\mathcal l})^{−2}, \ \ \ \ (5.2c)
+$$
+
+where $\pmb {\mathcal l}$ is a vector of positive values, and $\Lambda$ is a $D \times k$ matrix, $k < D$. 
+
+
+$M_2$ (automatic relevance determination): the inverse of the length-scale determines how relevant an input is - if the length-scale has a very large value, the covariance will become almost independent of that input, effectively removing it from the inference.
+
+$M_3$ (factor analysis distance): seeks to explain the data
+through a low rank plus diagonal decomposition. 
+
+Although there are endless variations in the suggestions for model selection in the literature three general principles cover
+most:           
+
+(1) compute the probability of the model given the data
+
+(2) estimate the generalization error 
+
+(3) bound the generalization error. 
+
+## 5.2 Bayesian Model Selection
+
+### level 1
+
+$\pmb w$ is a vector of the lowest level parameters, $\theta$ is a vector of the hyperparameters.
+
+$$
+p(\pmb w|\pmb y, X, \pmb \theta , \mathcal {H_i}) = \frac {p(\pmb y|X, \pmb w, \mathcal {H_i})p(\pmb w|\pmb \theta , \mathcal {H_i})}
+{p(\pmb y|X, \pmb \theta , \mathcal {H_i})} \ \ \ \ (5.3)
+$$
+
+$p(\pmb y|X, \pmb w, \mathcal {H_i})$ is the likelihood; 
+$p(\pmb w|\pmb \theta , \mathcal {H_i})$ is the parameter prior.
+
+\alert {why ${p(\pmb y|X, \pmb w, \mathcal {H_i})p(\pmb w|\pmb \theta , \mathcal {H_i})}$ is the joint? $p(\pmb w, \pmb y|X, \pmb \theta, \mathcal {H_i})$}
+
+$$
+p(\pmb y|X, \pmb \theta , \mathcal {H_i}) = \int p(\pmb y|X, \pmb w, \mathcal {H_i})p(\pmb w|\pmb \theta , \mathcal {H_i}) d\pmb w\ \ \ \ (5.4)
+$$
+
+### level 2
+
+$$
+p(\pmb \theta |\pmb y, X, \mathcal {H_i}) = 
+\frac {p(\pmb y|X, \pmb \theta , \mathcal {H_i})p(\pmb \theta |\mathcal {H_i})}
+{p(\pmb y|X, \mathcal {H_i})} \ \ \ \  (5.5)
+$$
+
+where $p(\pmb \theta |\mathcal H_i)$ is the hyper-prior (the prior for the hyperparameters). 
+
+$$
+p(\pmb y|X, \mathcal {H_i}) = \int p(\pmb y|X, \pmb \theta , \mathcal {H_i})p(\pmb \theta |\mathcal {H_i})d\pmb \theta \ \ \ \  (5.6)
+$$
+
+
+$$
+p(\mathcal {H_i}|\pmb y, X) = \frac {p(\pmb y|X, \mathcal {H_i})
+p(\mathcal {H_i})}
+{p(\pmb y|X)} \ \ \ \ (5.7)
+$$
+
+where $p(y|X) = \sum_i p(y|X, \mathcal {H_i})p(\mathcal {H_i})$, Depending on the details of the models, these integrals may or may not be analytically tractable and in general one may have to resort to analytical approximations or Markov chain Monte Carlo (MCMC) methods. 
+
+In practice, especially the evaluation of the integral in **eq. (5.6)** may be difficult, and as an approximation one may
+shy away from using the hyperparameter posterior in **eq. (5.5)**, and instead maximize the marginal likelihood in **eq. (5.4)** w.r.t. the hyperparameters, $\pmb \theta$.
+This approximation is known as **type II maximum likelihood (ML-II)**. 
+
+The prior over models $\mathcal H_i$ in **eq. (5.7)** is often taken to be flat, so that a priori we do not favour one model over another.
+
+This effect is called **Occam’s razor** after William of Occam 1285-1349, whose principle: "lurality should not be assumed without necessity" he used to encourage simplicity in explanations. 
+
+Notice that the trade-off between data-fit and model complexity is automatic; there is no need to set a parameter externally to fix the trade-off. Do not confuse the automatic Occam’s razor principle with the use of priors in the Bayesian method. Even if the priors are "flat" over complexity, the marginal likelihood will still tend to favour the least complex model able to explain the data. Thus,
+a model complexity which is well suited to the data can be selected using the marginal likelihood.
+
+
+## 5.3 Cross-validation
+
+Typical values for $k$ are in the range 3 to 10.
+An extreme case of $k$-fold cross-validation is obtained for $k = n$, the number of training cases, also known as **leave-one-out cross-validation (LOO-CV)**.
+
+
+## 5.4 Model Selection for GP Regression
+
+### 5.4.1 Marginal Likelihood 
+
+$$
+\log p(\pmb y|X, \pmb \theta ) = − \frac 1 2 \pmb y^{\top}K_y^{−1} \pmb y − \frac 1 2 \log |K_y| − \frac n 2 \log 2\pi \ \ \ \ (5.8)
+$$
+
+where $K_y = K_f + \sigma_n^2I$ is the covariance matrix for the noisy targets $\pmb y$ (and $K_f$ is the covariance matrix for the noise-free latent $\pmb f$), and we now explicitly write the marginal likelihood conditioned on the hyperparameters (the parameters of the covariance function) $\pmb \theta$. 
+
+The only term involving the observed targets is the data-fit
+$−\pmb y^{\top}K_y^{−1} \pmb y/2$; $\log |K_y|/2$ is the complexity penalty depending only on the covariance function and the inputs and $n\\log(2\pi)/2$ is a normalization constant.
+
+```{r}
+knitr::include_graphics('figure/5-3.png')
+```
+
+
+```{r out.width="60%"}
+knitr::include_graphics('figure/5-4.png')
+```
+
+The complexity of computing the marginal likelihood in **eq. (5.8)** is dominated by the need to invert the $K$ matrix (the $\log$ determinant of $K$ is easily computed as a by-product of the inverse). 
+
+$$
+\frac \partial {\partial \theta_j} \log p(\pmb y|X, \pmb \theta) = \frac 1 2 \pmb y^{\top} K^{−1} \frac {\partial K} {\partial \theta_j} K^{−1}\pmb y − \frac 1 2  tr \Big(K^{−1} \frac {\partial K} {\partial \theta_j} \Big) = 
+\frac 1 2 tr \Big((\pmb \alpha \pmb \alpha^{\top} − K^{−1})
+\frac {\partial K} {\partial \theta_j}\ \ \ \ (5.9)
+$$
+
+where $\pmb \alpha = K^{−1} \pmb y$. using a gradient based optimizer is advantageous.
+
+
+```{r}
+knitr::include_graphics('figure/5-5.png')
+```
+
+
+### 5.4.2 Cross-validation
+
+$$
+\log p(y_i|X, \pmb y_{−i}, \pmb \theta) = − \frac 1 2
+\log \sigma_i^2 − \frac {(y_i − \mu_i)^2}
+{2\sigma^2_i} − \frac 1 2 \log 2\pi \ \ \ \  (5.10)
+$$
+
+
+$$
+L_{LOO}(X, \pmb y, \pmb \theta ) = \sum_{i=1}^n
+\log p(y_i|X, \pmb y_{−i}, \pmb \theta) \ \ \ \  (5.11)
+$$
+
+LOO-CV predictive mean and variance are
+
+$$
+\mu_i = y_i − \frac {[K^{−1} \pmb y]_i}
+{[K^{−1}]_{ii}}\ \ \ \ (5.12a)\\
+\sigma_i^2 = 1/[K^{−1}]_{ii} \ \ \ \ (5.12b)
+$$
+
+where careful inspection reveals that the mean $\mu_i$ is in fact independent of $y_i$ as indeed it should be.
+
+$$
+\frac {\partial \mu_i} {\partial \theta_j} =
+\frac {[Z_j\pmb \alpha]_i} {[K^{−1}]_{ii}} −
+\frac {\pmb \alpha_i[Z_j K^{−1}]_{ii}} {[K^{−1}]^2_{ii}}\ \ \ \ (5.13a)\\
+\frac {\partial \sigma^2_i} {\partial \theta_j} =
+\frac {[Z_j K^{−1}]_{ii}} {[K^{−1}]^2_{ii}} \ \ \ \ (5.13b)
+$$
+
+where $\alpha = K^{−1}y$ and $Z_j = K^{−1} \frac {\partial \theta} {\partial K_j}$ 
+
+
+$$
+\frac {\partial L_{LOO}} {\partial \theta_j} =
+\sum_{i=1}^n 
+{\frac {\partial  \log p(y_i|X, \pmb y_{−i}, \pmb \theta)} {\partial \mu_i}} 
+{\frac {\partial \mu_i} {\partial \theta_j}} +
+{\frac {\partial  \log p(y_i|X, \pmb y_{−i}, \pmb \theta)} {\partial \sigma^2_i} }
+{\frac {\partial \sigma^2_i} {\partial \theta_j}} = \\ 
+\sum^n_{i=1} \Bigg(\alpha_i[Z_j \pmb \alpha]_i − \frac 1 2 \Big(1 + {\frac {\alpha^2_i} {[K^{-1}]_{ii}}} \Big) 
+[Z_j K^{−1}]_{ii} \Bigg) /[K−1]_{ii} \ \ \ \ \ (5.14)
+$$
+
+### 5.4.3 Examples and Discussion
+
+#### Mauna Loa Atmospheric Carbon Dioxide
+
+$$
+k_1(x, x') = \theta_1^2 \exp \Bigg(− \frac {(x − x')^2} {2\theta^2_2} \Bigg) \ \ \ \ \ (5.15)
+$$
+
+$$
+k_2(x, x') = \theta_3^2 \exp 
+\Bigg( 
+− {\frac {(x − x')^2} {2 \theta_4^2}} 
+− {\frac {2 \sin^2 \big( \pi (x − x') \big)} {\theta^2_5}}
+\Bigg) \ \ \ \ (5.16)
+$$
+
+
+$$
+k_3(x, x') = \theta_6^2 
+\Bigg(
+1 + {\frac {(x − x')^2} {2 \theta_8 \theta_7^2}} 
+\Bigg)^{\theta_8} \ \ \ \ \ (5.17)
+$$
+
+$$
+k_4(x_p, x_q) = \theta_9^2 \exp 
+\Bigg( 
+− \frac {(x_p − x_q)^2} {2\theta^2_{10}}
+\Bigg)
++ \theta_{11} \sigma_{pq} \ \ \ \ (5.18)
+$$
+
+
+$$
+k(x, x') = k_1(x, x') + k_2(x, x') + k_3(x, x') + k_4(x, x')\ \ \ \ \ (5.19)
+$$
+
+with hyperparameters $\pmb \theta = (\theta_1,\ ...,\ \theta_{11})^{\top}$
+
+#### Robot Arm Inverse Dynamics
+
+
+
+## 5.5 Model Selection for GP Classification
+
+### 5.5.1 Derivatives of the Marginal Likelihood for Laplace’s ∗
+Approximation
+
+$$
+\log q(\pmb y|\pmb X, \pmb \theta ) = 
+− {\frac 1 2} {\hat {\pmb f}}^{\top}K^{−1}{\hat {\pmb f}}  + \log p(\pmb y|{\hat {\pmb f}} ) − {\frac 1 2} \log |B|, (5.20)
+$$
+
+where $B = I + W^{\frac 1 2}  K W^{\frac 1 2}$ and  ${\hat {\pmb f}}$  is the maximum of the posterior **eq. (3.12)** found by Newton’s method in **Algorithm 3.1**, and $W$ is the diagonal matrix $W = −\nabla \nabla \log p(\pmb y| {\hat {\pmb f}})$. We can now optimize the approximate marginal likelihood $q(\pmb y|\pmb X, \pmb \theta)$ w.r.t. the hyperparameters, $\pmb \theta$. To this end we seek the partial derivatives of $\frac {\partial q(\pmb y|\pmb X, \pmb \theta)} {\partial \theta_j}$. The covariance matrix $\pmb K$ is a function of the hyperparameters, but  ${\hat {\pmb f}}$  and therefore $W$ are also implicitly functions of $\pmb \theta$, since
+when $\pmb \theta$ changes, the optimum of the posterior ${\hat {\pmb f}}$ also changes. Thus
+
+$$
+\frac {\partial  \log q(\pmb y|\pmb X, \pmb \theta )} {\partial \theta_j} =
+\frac {\partial  \log q(\pmb y| \pmb X, \pmb \theta)} {\partial \theta_j} \Bigg|_{explicit} +
+\sum_{i=1}^n
+\frac {\partial  \log q(\pmb y| \pmb X, \pmb \theta )} {\partial {\hat f_i}}
+\frac {\partial {\hat f_i}} {\partial \theta_j} \ \ \ \ \ (5.21)
+$$
+
+
+$$
+\frac {\partial  \log q(\pmb y| \pmb X, \pmb \theta)} {\partial \theta_j} \Bigg|_{explicit} =
+{\frac 1 2} \hat {\pmb f}^{\top} K^{-1} 
+\frac {\partial K} {\partial \theta_j} K^{-1} \hat {\pmb f}
+- {\frac 1 2} tr\Bigg((W^{-1} + K)^{-1} \frac {\partial K} {\partial \theta_j}\Bigg) \ \ \ \ \ (5.22)
+
+$$
+
+
+
+$$
+\frac {\partial  \log q(\pmb y| \pmb X, \pmb \theta)} {\partial {\hat f_i}} = 
+− {\frac 1 2}
+\frac {\partial  \log |B|} {\partial {\hat f_i}} = 
+− {\frac 1 2}
+tr \Bigg( B^{−1}K {\frac {\partial W} {\partial {\hat f_i}}} \Bigg) = \\
+− {\frac 1 2} [(K^{−1} + W)^{−1}]_{ii} 
+\frac {\partial^3} {\partial f_i^3} \log p(\pmb y| {\hat {\pmb f}} ) \ \ \ \ \ (5.23)
+$$
+
+$\hat {\pmb f} = K \nabla \log p(\pmb y|\hat {\pmb f})$
+
+$$
+\frac {\partial {\hat {\pmb f}}} {\partial \theta_j} =
+\frac {\partial K} {\partial \theta_j} \nabla \log p(\pmb y| {\hat {\pmb f}}) + 
+K \frac {\partial \nabla \log p(y| {\hat {\pmb f}} )}{\partial  {\hat {\pmb f}}}
+\frac  {\partial {\hat {\pmb f}}} {\partial \theta_j} = 
+(I + KW)^{−1} \frac {\partial K} {\partial \theta_j} \nabla \log p(\pmb y| {\hat {\pmb f}}) \ \ \ \ \ (5.24)
+$$
+
+where we have used the chain rule $\partial /\partial \theta_j = \partial  {\hat {\pmb f}} /\partial \theta_j \cdot \partial /\partial  {\hat {\pmb f}}$  and the identity $\partial \nabla \log p(\pmb y| {\hat {\pmb f}} )/\partial  {\hat {\pmb f}}  = −W$. The desired derivatives are obtained by plugging **eq. (5.22-5.24)** into **eq. (5.21)**
+
+
+
+input: X (inputs), y (±1 targets), \theta  (hypers), p(y|f) (likelihood function)
+2: compute K compute covariance matrix from X and \theta 
+(f, a) := mode K, y, p(y|f) locate posterior mode using Algorithm 3.1
+4: W := −\nabla\nabla \log p(y|f)
+L := cholesky(I + W 12 KW \frac 1 2  ) solve LL^{\top} = B = I + W \frac 1 2  KW \frac 1 2 
+6: \log Z := −12a^{\top}f + \log p(y|f) − P \log(diag(L)) eq. (5.20)
+R := W 12 L^{\top}\\(L\W \frac 1 2  ) R = W \frac 1 2  (I + W \frac 1 2  KW 12 )−1W \frac 1 2 
+8: C := L\\(W \frac 1 2  K)
+s2 := −12 diag  diag(K) − diag(C^{\top}C)\nabla3 \log p(y|f) o eq. (5.23)
+10: for j := 1 . . . dim(\theta ) do
+C := \partial K/\partial \theta j compute derivative matrix from X and \theta 
+12: s1 := \frac 1 2 a^{\top}Ca − 12 tr(RC) eq. (5.22)
+b := C\nabla \log p(y|f)
+14: s3 := b − KRb o eq. (5.24)
+\nablaj \log Z := s1 + s^{\top} 2 s3 eq. (5.21)
+16: end for
+return: \log Z (\log marginal likelihood), \nabla \log Z (partial derivatives)
+
+
+
+## Details of the Implementation
+
+R = (W −1 + K)−1 = W 12 (I + W \frac 1 2  KW \frac 1 2  )−1W \frac 1 2  , (5.25)
+
+
+\partial  \log ZEP
+\partial \theta j =
+\partial 
+\partial \theta j
+ − 1
+2
+µ˜^{\top}(K + \sigma ) ˜ −1µ˜ − 1
+2
+\log |K + \sigma ˜| (5.26)
+=
+12
+µ˜^{\top}(K + S˜−1)−1 \partial K
+\partial \theta j (K + S˜−1)−1µ˜ − 12 tr (K + S˜−1)−1 \partial K \partial \theta j .
+In Algorithm 5.2 the derivatives from eq. (5.26) are implemented using
+\partial  \log ZEP
+\partial \theta j =
+12
+tr bb^{\top} − S˜\frac 1 2  B−1S \frac 1 2  \partial K \partial \theta j , (5.27)
+where b = (I − S˜12 B−1S˜12 K)ν˜.
+
+
+
+### 5.5.3 Cross-validation
+
+
+#### Other Methods for Setting Hyperparameters
+
+A(K, y) = y^{\top}Ky
+nkKkF , (5.28)
+where kKkF denotes the Frobenius norm of the matrix K, as defined in eq. (A.16).
+Lanckriet et al. [2004] show that if K is a convex combination of Gram matrices Ki so that K = Pi νiKi with νi ≥ 0 for all i then the optimization of
+the alignment score w.r.t. the νi’s can be achieved by solving a semidefinite
+programming problem.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

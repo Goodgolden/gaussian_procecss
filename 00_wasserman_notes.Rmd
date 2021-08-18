@@ -1,0 +1,111 @@
+---
+title: "00_wasserman_notes"
+author: "Randy"
+date: "7/22/2021"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chapter1 Introduction
+
+$x_n = o(a_n): \ \ \ \lim_{n \rightarrow \infty} x_n/a_n = 0$\
+$x_n = O(a_n): \ \ \  |x_n/a_n|\ is\ bounded\ for\ all\ large\ n$
+$a_n \sim b_n: \ \ \  a_n/b_n \rightarrow 1\ as\ n \rightarrow \infty$
+$an \asymp b_n: \ \ \ a_n/b_n\ and\ b_n/a_n\ are\ bounded\ for\ all\ large\ n$
+
+**1.11 Definition** $C_n$ is a finite sample $1 − \alpha$ confidence set if: 
+$$
+\inf_{F \in \mathfrak F}\ \mathbb P_F (\theta  \in C_n) 
+\geq 1 − \alpha,\ \forall\  n\ \ \ \ (1.12) 
+$$
+
+$C_n$ is a uniform asymptotic $1 − \alpha$ confidence set if: 
+$$
+\liminf\limits_{n \rightarrow \infty}\ \inf_{F \in \mathfrak F} 
+\mathbb P_F (\theta  \in C_n) \geq 1 − \alpha\ \ \ \ (1.13)
+$$ 
+
+$C_n$ is a pointwise asymptotic $1 − \alpha$ confidence set if: 
+$$
+\forall\ F \in \mathfrak F,\ \liminf\limits_{n \rightarrow \infty}
+\mathbb P_F (\theta \in C_n) \geq 1 − \alpha\ \ \ \ (1.14)
+$$
+
+If $\| · \|$ denotes some norm and $\hat f_n$ is an estimate of $f$,
+then a confidence ball for $f$ is a confidence set of the form: 
+$$
+C_n = f \in  \mathfrak F : \|f − \hat f_n\| \leq s_n\ \ \ \ (1.15)
+$$
+
+
+A pair of functions $(l, u)$ is a $1 − \alpha$ confidence band or confidence envelope if:
+$$
+\inf_{f \in \mathfrak F}
+\mathbb P\big( l(x) \leq f(x) \leq u(x):  \forall\ x \in \mathcal X\big) \geq 1 − \alpha\ \ \ \  (1.16)
+$$
+
+Confidence balls and bands can be finite sample, pointwise asymptotic and
+uniform asymptotic as above. When estimating a real-valued quantity instead
+of a function, $C_n$ is just an interval and we call $C_n$ a confidence interval.
+
+
+Ideally, we would like to find finite sample confidence sets. 
+When this is not possible, we try to construct uniform asymptotic confidence sets. 
+The last resort is a pointwise asymptotic confidence interval. 
+
+If $C_n$ is a uniform asymptotic confidence set, 
+then the following is true: for any \delta > 0 there exists
+an n(\delta) such that the coverage of Cn is at least 1 − \alpha  − \delta for all n > n(\delta).
+With a pointwise asymptotic confidence set, there may not exist a finite n(\delta).
+In this case, the sample size at which the confidence set has coverage close to
+1 − \alpha  will depend on f (which we don’t know).
+
+
+
+
+
+Definition 2.1 empirical distribution function $\hat F_n$ is a CDF.
+
+$$
+\hat F_n=\frac 1 n \sum_{i=1}^n I(X_i \leq x),\ where\ I(X_i \leq x)=\begin{cases} 1 & if\ X_i\leq x\\ 0 & if X_i\geq x \end{cases} 
+$$
+
+2.4 Theorem Let $X_1, . . .  , X_n \sim F$ and let $F_n$ be the empirical CDF. Then:
+
+1. At any fixed value of $x$, $E[\hat F_n(x) = F(x)]$ and $Var[F_n(x)] = \frac {F(x)(1− F(x))} {n}$. Thus, $MSE = \frac {F(x)(1−F(x))} {n} \rightarrow 0$ and hence $\hat F_n(x) \stackrel P \rightarrow F(x)$.
+
+2. (Glivenko–Cantelli Theorem): $\sup_x |\hat F_n(x) − F(x)| \stackrel {a.s.} \rightarrow 0$.
+
+3. (Dvoretzky–Kiefer–Wolfowitz (DKW) inequality): For any $\epsilon > 0$,
+$P \Big(\sup_x |F(x) − \hat F_n(x)| > \epsilon \Big) \leq 2e^{−2n\epsilon^2} \ \ \ \ (2.5)$
+
+
+
+2.6 Theorem
+
+2.6 Theorem. Let
+L(x) = max{Fn(x) − n, 0}
+U(x) = min{Fn(x) + n, 1}
+where
+n = 21n log α2 .
+Then, for all F and all n,
+P L(x) ≤ F (x) ≤ U(x) for all x ≥ 1 − α.
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,1391 @@
+---
+title: "Chapter 2"
+author: "Randy"
+date: "7/1/2021"
+output: html_document
+---
+
+# Regression
+
+## simulated dataset
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      cache = TRUE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+### package
+
+```{r package}
+library("tidymodels")
+library("tidyverse")
+
+library("here")
+library("janitor")
+
+library("knitr")
+library("tinytex")
+library("bookdown")
+```
+
+-   simulated data over 28 days for one menstrual cycle
+
+-   ***the outcome is prog (Progesterone)***
+
+-   ***the primary explanatory variable is daystacked (cycle day)***
+
+-   ignore the other columns for now.
+
+-   progesterone is coded to constant/low-level until Day 15
+
+-   after Day15 it increases through Day 21\
+
+-   decreases back to baseline at Day 28\
+
+-   simulated data assumes progesterone is measured without error
+
+-   ***this data seems 'similar' to R&W's figure-2.6***
+
+-
+
+-   two equivalent views
+
+    -   function space view
+    -   weight space view
+
+## 2.1 Weight-space View
+
+-   training set $\mathcal D$
+-   design matrix
+-   target
+
+### 2.1.1 The standard linear model (2.1)
+
+$$
+f(\pmb x) = \pmb x ^{\top} \pmb w,\ y = f(\pmb x) + \epsilon, 
+\ \ \ \ (2.1)
+$$
+
+
+
+## load data
+
+```{r dataset}
+set.seed(555)
+
+progsim_one <- here::here("data", "progsim_one.csv") %>%
+  read.csv(row.names = 1) %>%
+  janitor::clean_names()
+# View(progsim_one)
+# str(progsim_one)
+```
+
+this the data without noise, $f(x)$ in equation (2.1)
+
+```{r eda1.1, fig.height=3, fig.width=5}
+plot1 <- progsim_one %>%
+  ggplot(aes(daystacked, prog)) +
+  geom_line(col = "darkgreen") +
+  geom_smooth(col = "indianred", 
+              linetype = "dashed") 
+plot1 + theme_bw()
+```
+
+without noise the plot and the autoregression, $f(x)$ in equation (2.1)
+
+```{r eda1.2, fig.height=5, fig.width=10}
+op <- par(mfrow = c(1, 2),
+          mar = c(4, 4, 1, 1))
+plot(progsim_one$daystacked, 
+     progsim_one$prog,
+     type = "p",
+     col = "darkgreen",
+     lwd = 2,
+     bty = "l")
+acf(progsim_one$prog) 
+par(op)
+```
+
+
+
+-   bias/offset
+
+$$
+\epsilon \sim \mathcal N(0,\ \sigma^2_n) \ \ \ \ (2.2)
+$$
+
+
+```{r error}
+W <- progsim_one$prog / (1:28)
+sigma <- 0.1
+epsilon_n <- rnorm(length(progsim_one$prog), 0, sigma)
+
+progsim_one <- progsim_one %>%
+  mutate(prog_y = prog + epsilon_n)
+
+# View(epsilon_n)
+# View(progsim_one)
+```
+
+```{r eda2.1, fig.height=3, fig.width=5}
+plot2 <- progsim_one %>%
+  ggplot(aes(daystacked, prog_y)) +
+  geom_line(col = "darkgreen") +
+  geom_smooth(col = "indianred", 
+              linetype = "dashed") 
+plot2 + theme_bw()
+```
+
+with noise the plot and the autoregression, $y$ in equation (2.1)
+
+```{r eda2.2, fig.height=3, fig.width=6}
+op <- par(mfrow = c(1, 2),
+          mar = c(4, 4, 1, 1))
+plot(progsim_one$daystacked, 
+     progsim_one$prog_y,
+     type = "p",
+     col = "darkgreen",
+     lwd = 2,
+     bty = "l")
+acf(progsim_one$prog_y) 
+par(op)
+```
+
+
+
+-   likelihood
+-   probability density
+
+$$
+p(\pmb y|\pmb X,\ \pmb w) = \prod_{i=1} ^n p(y_i|\pmb x_i,\ \pmb w) 
+= \prod{\frac{1}{\sqrt{2\pi}\sigma_n}exp\Big(-\frac {(y_i-\pmb x_i^{\top} \pmb w)^2} 
+{2\sigma^2_n}\Big)} \\
+= \frac{1} {(2\pi\sigma^2_n)^{n/2}} exp \Big(-\frac{1} {2\sigma_n^2} 
+|\pmb y- \pmb X^{\top} \pmb w|^2 \Big) 
+= \mathcal N(\pmb X^{\top} \pmb w,\ \sigma^2_n \pmb I),
+\ \ \ \ (2.3)
+$$
+
+-   prior
+
+$$
+\pmb w \sim \mathcal N(\pmb 0,\ \Sigma_p)
+\ \ \ \ (2.4)
+$$
+
+-
+
+```{r matrix, fig.height=3, fig.width=9}
+## time scale
+days <- progsim_one$daystacked
+
+## without noise
+prog <- progsim_one$prog
+prog_mu <- mean(progsim_one$prog)
+prog_cov <- (prog - prog_mu) %*% t(prog - prog_mu)
+prog_cor <- cov2cor(prog_cov)
+prog_eigen <- eigen(prog_cov)
+
+## with noise
+progy <- progsim_one$prog_y
+progy_mu <- mean(progsim_one$prog_y)
+progy_cov <- (progy - progy_mu) %*% t(progy - progy_mu)
+progy_cor <- cov2cor(progy_cov)
+progy_eigen <- eigen(progy_cov)
+
+error_cov <- diag(28, 28) * (epsilon_n)^2
+
+op <- par(mfrow = c(1, 3))
+fields::image.plot(days, days, 
+                   prog_cov, 
+                   zlim = c(-1.5, 3),
+                   col = viridis::viridis(50), 
+                   main = "covariance without noise")
+
+fields::image.plot(days, days, 
+                   progy_cov, 
+                   zlim = c(-1.5, 3),
+                   col = viridis::viridis(50), 
+                   main = "covariance with noise")
+
+fields::image.plot(days, days, 
+                   error_cov, 
+                   col = viridis::viridis(50), 
+                   main = expression(paste(sigma^2, "I")))
+par(op)
+
+## error for N-PSD matrix why? -------------------------------------------------
+# alpha <- solve(k_se)
+# alpha <- solve(prog_cov)
+# L <- chol(prog_cov)
+# L <- chol(k_se)
+
+## cholesky & left division does not work --------------------------------------
+# t(solve(t(prog_cov), t(k_se0)))
+
+```
+
+
+
+### kernels
+
+```{r "heatmap", fig.height=6, fig.width=6}
+# seq_along(prog)
+k_se0 <- matrix(nrow = 28, ncol = 28)
+k_se1 <- matrix(nrow = 28, ncol = 28)
+k_se2 <- matrix(nrow = 28, ncol = 28)
+
+## kernel se for characteristic length scale 1
+for (i in seq_along(progy)) {
+  for (j in seq_along(progy)) {
+    k_se0[i, j] <- 
+      exp(-0.5 * (progy[i] - progy[j])^2)
+  }
+}
+## kernel se for characteristic length scale 0.5
+for (i in seq_along(progy)) {
+  for (j in seq_along(progy)) {
+    k_se1[i, j] <- 
+      exp(-0.5 * ((progy[i] - progy[j]) / 0.5)^2)
+  }
+}
+## kernel se for characteristic length scale 2
+for (i in seq_along(progy)) {
+  for (j in seq_along(progy)) {
+    k_se2[i, j] <- 
+      exp(-0.5 * ((progy[i] - progy[j]) / 2)^2)
+  }
+}
+
+
+## heatmap plots
+op <- par(mfrow = c(2, 2))
+fields::image.plot(days, days, 
+                   progy_cov, 
+                   col = viridis::viridis(50), 
+                   main = "raw_data")
+## kernel se for characteristic length scale 0.5
+fields::image.plot(days, days, 
+                   k_se1, 
+                   zlim = c(0, 1),
+                   col = viridis::viridis(50), 
+                   main = "kernel_se: l = 0.5" )
+## kernel se for characteristic length scale 1
+fields::image.plot(days, days, 
+                   k_se0, 
+                   zlim = c(0, 1),
+                   col = viridis::viridis(50), 
+                   main = "kernel_se: l = 1")
+## kernel se for characteristic length scale 2
+fields::image.plot(days, days, 
+                   k_se2, 
+                   zlim = c(0, 1),
+                   col = viridis::viridis(50), 
+                   main = "kernel_se:  l = 2")
+par(op)
+```
+
+-   posterior
+-   marginal likelihood
+
+$$
+p(w|y,\ X) = \frac {p(y|X,\ w)p(w)} {p(y|X)}
+\ \ \ \ (2.5)\\
+p(y|X) = \int p(y|X,\ w)p(w)dw
+\ \ \ \ (2.6)
+$$
+
+$$
+p(w|X, y) \propto  exp \Big( -\frac{1} {2\sigma^2_n} (y - X^{\top} w)^{\top}(y - X^{\top} w) \Big) 
+exp \Big( -\frac{1} {2} (w^{\top}\Sigma_p ^{-1} w) \Big) \\ 
+\propto  exp \Big( -\frac{1} {2} (w - \bar w)^{\top} (\frac{1} {\sigma_n^2}XX^{\top} + \Sigma^{-1}_p) (w - \bar w) \Big) \ \ \ \ (2.7)\\ 
+\bar w =\sigma^{-2}_n ({\sigma_n^ {-2}} XX^{\top} + \Sigma^{-1}_p)^{-1}Xy
+$$
+
+**sidenotes** in another words, to maximized the likelihood function is to minimized the contrast. for smoothing splines, the penalized residual sum of squares, we get the equation (2.7b&c)
+
+$\sigma_n$ is a value 0.1
+
+$$
+\hat w = ( XX^{\top} + {\sigma_n^ {2}}\Sigma^{-1}_p)^{-1}Xy\ \ \ \ (2.7a)\\
+PRSS(f,\ \lambda) = \sum^N_{i=1}(y_i - f(x_i))^2+\lambda\int f''(t)^2dt\ \ \ \ (2.7b)\\
+PRSS(\theta,\ \lambda) = (y- \Phi\theta)^{\top}(y-\Phi\theta)+\lambda\theta^{\top}\Omega_\Phi\theta \ \ \ (2.7c)\\
+\hat \theta = (\Phi^{\top}\Phi+\lambda\Omega_\Phi)^{-1}\Phi^{\top}y\ \ \ \ (2.7d)\\
+\hat f = \Phi(\Phi^{\top}\Phi+\lambda\Omega_\Phi)^{-1}\Phi^{\top}y = S_\lambda y\ \ \ \ (2.7e)\\
+given,\ f(x) = \sum^N_{j=1}\phi_j(x)\theta_j\\
+\{\Phi\}_{ij}=\phi_j(x_i)\\
+\{\Omega_\Phi\}_{ij}=\int \Phi''_j(t)\Phi''_k(t)dt
+$$
+
+The posterior is also a Gaussian
+
+$$
+p(w|X,\ y)\sim \mathcal N(\bar w = \frac{1} {\sigma^2_n}A^{-1}Xy,\ A^{-1})\\
+A = \sigma^{-2}XX^{\top} + \Sigma_p^{-1}
+\ \ \ \ (2.8)
+$$
+
+-   MAP estimate (maximum a posteriori)
+
+-   ridge regression
+
+    -   penalized maximum likelihood estimate of the weights
+    -   penalty term $\frac 1 2 w^{\top}\Sigma_p^{-1}w$
+
+-   predictive distribution
+
+$$
+A = \sigma^{-2}XX^{\top} + \Sigma_p^{-1}\\
+f_* \stackrel {\Delta}{=} f(x_*) \\
+p(f_*|x_*,\ X,\ y) = \int p(f_*|x_*,\ w)p(w|X,\ y)dw\\
+\mathcal N(\frac{1}{\sigma^2_n}x_*^{\top}A^{-1}Xy,\ x_*^{\top}A^{-1}x_*)
+\ \ \ \ (2.9)
+$$
+
+### 2.1.2 Projection of Inputs into Feature Space
+
+-   feature space
+-   polynomial regression
+-   linear in the parameters
+
+$$
+f(x) = \phi (x)^{\top}w
+\ \ \ \ (2.10)\\
+w_0 + w_1x +w_2x^2\\
+\pmb \Phi \pmb w\\
+\phi =(1, x, x^2)\\
+w = (w_0, w_1, w_2)
+$$
+
+**notes** for example, additive models, we have treatment, and racial factors
+
+$$
+f(time) = f_0(time) + f_{treatment}(time) + f_{race}(time)\\
+= \phi_0(time) + \phi_{treatment}(time)\theta_{treatment} + \phi_{treatment}(time)\theta_{race}\\
+= \sum_{i=0}^p\phi_i\theta_i = \pmb{\Phi}(time)\pmb \theta
+$$
+
+potentially $\theta$ can also be a function of time? then tensor
+
+- explicit feature space formulation
+
+$$
+\Phi = \Phi(X)\\
+A = \sigma_n^{-2}\Phi\Phi^{\top} + \Sigma_{p}^{-1}\\
+f_*|x_*,\ X,\ y\
+\sim 
+\mathcal N(\frac {1} {\sigma^2_n} \phi(x_*)^{\top} A^{−1} \Phi y,\
+\phi(x_*)^{\top}A^{−1}\phi(x_*))
+\ \ \ \ (2.11)
+$$
+
+- alternative formulation
+
+$$
+f_*|x_*,\ X,\ y\ \sim N (\phi^{\top}_* \Sigma_p \Phi(K + \sigma_n^2I)^{−1}y,\
+\phi_*^{\top} \Sigma_p \phi_* − \phi_*^{\top} \Sigma_p \Phi(K + \sigma_n^2I)^{−1} \Phi^{\top}\Sigma_p\phi_*)
+\ \ \ \ (2.12)\\
+\phi(x_*) = \phi_*,\ \ K = \Phi^{\top} \Sigma_p\Phi,\ \\
+\sigma_n^{-2}\Phi(K + \sigma_n^2I) = \sigma_n^{-2}\Phi(\Phi^{\top} \Sigma_p\Phi +
+\sigma_n^2I) = A\Sigma_p\Phi\\
+\sigma^{-2}_nA^{-1}\Phi = \Sigma_p\Phi(K+\sigma^2_nI)^{-1}
+$$
+
+-   covariance function or kernel
+-   SVD singular value decomposition
+-   inner product and dot product
+-   kernel trick
+
+Inversion lemma
+
+$$
+(Z + UWV^{\top})^{-1} = Z^{-1}-Z^{-1}U(W^{-1}+V^{\top}Z^{-1}U)^{-1}V^{\top}Z^{-1}
+\ \ \ \ (A.9)
+$$
+
+## 2.2 Function-space View
+
+-   **Definition 2.1 A Gaussian process is a collection of random variables, any Gaussian process finite number of which have a joint Gaussian distribution.**
+
+-   mean function
+
+-   covariance function
+
+$$
+m(x) = \mathbb E[f(x)],\\
+k(x,\ x') = \mathbb E[(f(x) − m(x))(f(x') − m(x'))]
+\ \ \ \ (2.13)
+$$
+
+-   index set
+
+-   input domain
+
+$$
+f(x) \sim \mathcal {GP} (m(x), k(x, x')) \ \ \ (2.14)\\ 
+f(x) = \phi (x)^{\top}w,\ \ f(x) \sim \mathcal N(\Phi w,\ \Phi\Sigma_p\Phi) \ \ \ \ (2.10)\\
+time \ \ \ \ 1,2,3,4,
+w: w_1 w_2
+$$
+
+-   consistency
+
+-   marginalization property
+
+$$
+f(x) = \phi(x)^{\top} w\\
+w \sim \mathcal N(\pmb 0, \Sigma_p)\\
+\mathbb E[f(x)] = \phi(x)^{\top} \mathbb E[w] = 0,\\
+\mathbb E[f(x)f(x')] = \phi(x)^{\top}\mathbb E[ww^{\top}]\phi(x') = 
+\phi(x)^{\top}\Sigma_p\phi(x')
+\ \ \ \ (2.15)
+$$
+
+-   **Bayesian linear model is a Gaussian process**
+
+-   Squared exponential SE covariance function
+
+$$
+cov \big(f(x_p),\ f(x_q)\big) = 
+k(x_p,\ x_q) = 
+exp \Big(− \frac 1 2 |x_p − x_q|^2 \Big)
+\ \ \ \ (2.16)
+$$
+
+-   basis functions
+
+$$
+f_* \sim \mathcal N\big(\pmb 0,\ K(X_*,\ X_*)\big)
+\ \ \ \ (2.17)
+$$
+
+-   smoothness
+
+-   characteristic length scale
+
+### Prediction with Noise-free Observation
+
+$$
+\begin{bmatrix}
+f\\
+f_*
+\end{bmatrix}
+\sim
+\mathcal N
+\begin{pmatrix}
+\pmb 0,\
+  \begin{bmatrix}
+  K(X,\ X)\ \ \ \ \ K(X,\ X_*)\\
+  \ \ K(X_*,\ X)\ \ \ \ K(X_*,\ X_*)
+  \end{bmatrix}
+\end{pmatrix}
+\ \ \ \ (2.18)
+$$
+
+-   joint prior
+
+```{r "se_kernel"}
+get_se_Sigma <- function(X1, X2, l = 1) {
+  Sigma <- matrix(rep(0, length(X1) * length(X2)), 
+                  nrow = length(X1))
+  
+  for (i in 1:nrow(Sigma)) {
+    for (j in 1:ncol(Sigma)) {
+      Sigma[i, j] <- exp(-0.5 * (abs(X1[i] - X2[j]) / l)^2)
+    }
+  }
+  return(Sigma)
+}
+```
+
+
+```{r "figure2.2a"}
+set.seed(55555)
+
+x_star <- seq(-5, 5, len = 100)
+## covariance matrix
+sigma <- get_se_Sigma(x_star, x_star)
+## functions from the process
+n_sample <- 3
+values <- matrix(rep(0, length(x_star) * n_sample), 
+                 ncol = n_sample)
+
+for (i in 1:n_sample) {
+  values[, i] <- 
+    MASS::mvrnorm(1, rep(0, length(x_star)), sigma)
+}
+
+values <- cbind(x = x_star, 
+                as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+
+# Plot the result
+fig2_2a <- 
+  ggplot(values, 
+         aes(x = x, y = value)) +
+  geom_rect(xmin = -Inf, 
+            xmax = Inf, 
+            ymin = -2, 
+            ymax = 2, 
+            fill = "grey80") +
+  geom_line(aes(group = variable, 
+                linetype = variable)) +
+  scale_y_continuous(lim = c(-2.5, 2.5), 
+                     name = "output, f(x)") +
+  xlab("input, x") +
+  theme(legend.position = "none")
+
+fig2_2a + theme_classic() + theme(legend.position = "none")
+```
+
+\alert {this is a replication of figure 2.2a}
+
+```{r "figure2.2b"}
+f <- data.frame(x = c(-4, -3, -1, 0, 2),
+                y = c(-2, 0, 1, 2, -1))
+
+x <- f$x
+l <- 1
+# l <- 2
+
+k_xx <- get_se_Sigma(x, x, l)
+k_xxs <- get_se_Sigma(x, x_star, l)
+k_xsx <- get_se_Sigma(x_star, x, l)
+k_xsxs <- get_se_Sigma(x_star, x_star, l)
+
+## equation (2.19)
+f_star_bar <- k_xsx %*% solve(k_xx) %*% f$y
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx) %*% k_xxs
+
+## plot more samples
+## with samples explicitly here.
+
+n_samples <- 100
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+View(values)
+
+selected <- values %>%
+  filter(variable %in% c("V25", "V95", "V5"))
+  
+fit <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+
+# Plot the results including the mean function
+# and constraining data points
+fig2_2b <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit, 
+            aes(x = x_star,
+                y = f_star_bar)) +
+  geom_line(data = selected, 
+            aes(x = x,
+                y = value,
+                group = variable),
+            color = "indianred") +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(lim = c(-3, 3), 
+                     name = "output, f(x)") +
+  xlab("input, x")
+
+fig2_2b + theme_classic()
+```
+
+the black line is the posterior mean. the gray lines are simulated data from the posterior distribution (to show the variability, the wider of the range of gray lines on f(x) the larger the variability). the red lines are two random selected posterior                
+
+\alert {this is a replication of figure 2.2b, instead of the shaded $\pm 2SE$ I just ploted 100 simulated posterior for more explicit form for} this figure tells us that when there is no noise for observations, then the posterior distribution of at the observed points have the least variability (the posterior's variance is just zero, because we know that the the prediction will be exactly the same as the observed as we talked about). The further away from the observed points the larger of the variance: so the the largest variability showed up at the two edges, and the middle of the two observed points also have large variability.
+
+```{r "simulation without noise 2.2"}
+f <- data.frame(x = progsim_one$daystacked,
+                y = progsim_one$prog)
+x_star <- seq(0, 28, len = 500)
+
+x <- f$x
+k_xx <- get_se_Sigma(x, x, l)
+k_xxs <- get_se_Sigma(x, x_star, l)
+k_xsx <- get_se_Sigma(x_star, x, l)
+k_xsxs <- get_se_Sigma(x_star, x_star, l)
+
+## equation (2.19)
+f_star_bar <- k_xsx %*% solve(k_xx) %*% f$y
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx) %*% k_xxs
+
+n_samples <- 100
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+
+selected <- values %>%
+  filter(variable %in% c("V25", "V95", "V5"))
+  
+fit <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+
+fig_sim <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit, 
+            aes(x = x_star,
+                y = f_star_bar)) +
+  geom_line(data = selected, 
+            aes(x = x,
+                y = value,
+                group = variable),
+            color = "indianred") +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(name = "output, f(x)") +
+  xlab("input, x")
+
+fig_sim + theme_classic()
+```
+
+the black line is the posterior mean. the gray lines are simulated data from the posterior distribution (to show the variability, the wider of the range of gray lines on f(x) the larger the variability). the red lines are two random selected posterior                
+
+\alert {just like the commoments on figure2.2a} the given observed points as the least variability (0); the two ends of the input have the largest posterior variance (did not pot the data beyond 28th day; if we did, the prediction beyond 28th day will have very large variability because we do not have that much information beyond this time). the middle time points between two neighbor observation have larger variability.
+
+
+$$
+f_*|X_*,\ X,\ f\ \sim \mathcal N \Big(K(X_*,\ X)K(X,\ X)^{−1}f,\ \ \ 
+K(X_*,\ X_*)−K(X_*,\ X)K(X,\ X)^{−1} K(X,\ X_*) \Big) 
+\ \ \ \ (2.19)
+$$
+
+-   graphical rejection
+-   noise free predictive distribution
+
+### Prediction using Noisy Observation
+
+$$
+cov(y_p,\ y_q) = k(x_p,\ x_q) + \sigma_n^2\delta_{pq}\\
+cov(\pmb y) = K(X,\ X) + \sigma_n^2I
+\ \ \ \ (2.20)
+$$
+
+$$
+\begin{bmatrix}
+y\\
+f_*
+\end{bmatrix}
+\sim
+\mathcal N
+\begin{pmatrix}
+\pmb 0,\
+  \begin{bmatrix}
+  K(X,\ X)+\sigma^2_nI\ \ \ \ \ K(X,\ X_*)\\
+  \ \ \ \ \ K(X_*,\ X)\ \ \ \ \ \ \ \ \ \ K(X_*,\ X_*)
+  \end{bmatrix}
+\end{pmatrix}
+\ \ \ \ (2.21)
+$$
+
+-   predictive distribution
+
+$$
+f_*|X,\ y,\ X_*\ \sim \mathcal N \big(\bar {f_*},\ cov(f_*)\big)\ \ \ \ (2.22)\\
+\bar {f_*} \stackrel {\Delta} {=} \mathbb E[f_*|X,\ y,\ X_*] = 
+K(X_*,\ X)[K(X,\ X) + \sigma_n^2I]^{−1}y\ \ \ \ (2.23)\\
+cov(f_*) = K(X_*,\ X_*) − K(X_*,\ X)\big[K(X,\ X) + \sigma_n^2I\big]^{-1}K(X,\ X_*)\ \ \ \ (2.24)
+$$
+
+```{r "figure2.4b"}
+x_star <- seq(-5, 5, len = 500)
+## covariance matrix
+sigma <- get_se_Sigma(x_star, x_star)
+
+f <- data.frame(x = c(-4, -3, -1, 0, 2),
+                y = c(-2, 0, 1, 2, -1))
+x <- f$x
+k_xx <- get_se_Sigma(x, x, l)
+k_xxs <- get_se_Sigma(x, x_star, l)
+k_xsx <- get_se_Sigma(x_star, x, l)
+k_xsxs <- get_se_Sigma(x_star, x_star, l)
+
+## equation (2.19)
+f_star_bar <- k_xsx %*% solve(k_xx + diag(5, 5) * (0.1)^2) %*% f$y
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx + diag(5, 5) * (0.1)^2) %*% k_xxs
+
+# View(cov_f_star[, 400])
+`x-2` <- cov_f_star[, 150]
+x1 <- cov_f_star[, 300]
+x3 <- cov_f_star[, 400]
+
+plot(x_star, `x-2`, 
+     type = "l", 
+     ylim = c(-0.2, 0.8),
+     col = "darkgreen",
+     xlab ="post covariance cov(f(x), f(x'))")
+lines(x_star, x1, 
+      col = "indianred")
+lines(x_star, x3, 
+      col = "darkblue")
+```
+
+
+
+```{r "figure2.4a"}
+## plot more samples
+## with samples explicitly here.
+
+n_samples <- 100
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+
+
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+
+selected <- values %>%
+  filter(variable %in% c("V25", "V95", "V5"))
+  
+fit <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+
+fig2_4a <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit, 
+            aes(x = x_star,
+                y = f_star_bar)) +
+  geom_line(data = selected, 
+            aes(x = x,
+                y = value,
+                group = variable),
+            color = "indianred") +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(lim = c(-3, 3), name = "output, f(x)") +
+  xlab("input, x")
+
+fig2_4a + theme_classic()
+```
+
+the black line is the posterior mean. the gray lines are simulated data from the posterior distribution (to show the variability, the wider of the range of gray lines on f(x) the larger the variability). the red lines are two random selected posterior                
+
+\alert {different from fig2.2, when we can only observe the noisy-observations (assuming we know the $\sigma^2$) } there will be variability at the given observed points, but still roughly those are the points we are mostly sure about so there is less variability (narrow confidence bands if we plot them, \alert {but this is not the case for our example}); also the further away from the observed data, the less sure of the predictions (the larger variance for the posterior). 
+
+```{r "simulation with noise2.2"}
+f <- data.frame(x = progsim_one$daystacked,
+                y = progsim_one$prog_y)
+
+x_star <- seq(0, 28, len = 500)
+
+x <- f$x
+k_xx <- get_se_Sigma(x, x, l)
+k_xxs <- get_se_Sigma(x, x_star, l)
+k_xsx <- get_se_Sigma(x_star, x, l)
+k_xsxs <- get_se_Sigma(x_star, x_star, l)
+# View(k_xxs)
+## equation (2.23)
+f_star_bar <- k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% f$y
+## equation (2.24)
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% k_xxs
+
+n_samples <- 100
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+
+selected <- values %>%
+  filter(variable %in% c("V25", "V95", "V5"))
+  
+fit <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+
+# plot the mean function
+# and constraining data points
+fig_sim_e <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit, 
+            aes(x = x_star,
+                y = f_star_bar)) +
+  geom_line(data = selected, 
+            aes(x = x,
+                y = value,
+                group = variable),
+            color = "indianred") +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(name = "output, f(x)") +
+  xlab("input, x")
+
+fig_sim_e + theme_classic()
+```
+
+the black line is the posterior mean. the gray lines are simulated data from the posterior distribution (to show the variability, the wider of the range of gray lines on f(x) the larger the variability). the red lines are two random selected posterior           
+
+The individual observation does not guarantee the least variability for the prediction. the predicted points at the original observed points mostly consistent with the trend have the least variance. 
+
+
+**my notes for this part: the prediction above are based on the posterior distribution for the entire time-range. if we are interested on the prediction on a given time point or a subset of the time range, we can simply find the specific covariance for the subset and use exactly the same methods. I think it is due to the conditional independent feature of the Gaussian Process. those specific subset of the time range will still be a Gaussian Process.**
+
+
+-   compact notation $K(C,\ D) = \Phi(C)^{\top}\Sigma_p\Phi(D)$, where $C$, $D$ stand for either $X$ or $X_*$
+
+$$
+K = K(X,\ X);\ \ K_* = K(X,\ X_*);\ \ k(x_*) = k_*\\
+\bar {f_*} = k_*^{\top} (K + \sigma_n^2I)^{−1}y, \ \ \ \ (2.25)\\
+\mathbb V[f_*] = k(x_*,\ x_*) − k^{\top}_* (K + \sigma_n^2I)^{−1}k_*
+\ \ \ \ (2.26)
+$$
+
+-   linear predictor
+
+$$
+\bar f(x_*) = \sum^n_{i=1}\alpha_ik(x_i,\ x_*)
+\ \ \ \ (2.27) \\
+\alpha = (K + \sigma^2_nI)^{-1}y
+$$
+
+* representation theorem 
+* noisy predictions 
+* joint predictions 
+* posterior process 
+* marginal likelihood
+
+### Algorithm 2.1: Predictions and log marginal likelihood for Gaussian process regression.
+
+*Input*: $X$(inputs), $y$(targets), $k$(covariance function), $\sigma^2_n$ (noise level), $x_*$(test input)\
+*2*: $L = cholesky(K + \sigma_n^2I)$ $\alpha = L^{\top}\(L\y)$\
+*4*: $\bar{f_*} = k^{\top}_*\alpha$\
+$v = L\k_*$\
+*6*: $\mathbb V[f_*] = k(x_*, x_*) − v^{\top}v$\
+$log\ p(y|X) = -\frac{1} {2} y^{\top}\alpha − \sum_i log\ L_{ii} − \frac{n}{2} log\ 2\pi$\
+*8*: **return**: $\bar {f_*}$(mean), $\mathbb V[f_*]$(variance), $log\ p(y|X)$(log marginal likelihood)
+
+```{r cholesky_function}
+#' @description the cholesky decomposition from a online resource
+                # http://rosettacode.org/wiki/Cholesky_decomposition#C
+                # https://stackoverflow.com/questions/35026560/r-chol-and-positive-semi-definite-matrix
+#' @para A the squared matrix
+#' @output L the cholesky decompose; 
+           # if the matrix is not positive semidefinite the value will be NA 
+#' @example see below the function
+
+cholesky_matrix <- function(A){
+  
+    L <- matrix(0, nrow=nrow(A), ncol=ncol(A))
+    colnames(L) <- colnames(A)
+    rownames(L) <- rownames(A)
+
+    m <- ncol(L)
+    for(i in 1:m){
+        for(j in 1:i){
+            s <- 0
+            if(j > 1){
+                for(k in 1:(j-1)){
+                    s <- s + L[i, k] * L[j, k]
+                }
+            }
+            if(i == j){
+                L[i, j] <- sqrt(A[i, i] - s)
+            } else {
+                L[i, j] <- (1 / L[j, j]) * (A[i, j] - s)
+            }
+        }
+    }
+    return(L)    
+}
+
+```
+
+$$
+p(y|X) = \int p(y|f,\ X)p(f|X) df
+\ \ \ \ (2.28)
+$$
+
+$$
+log\ p(f|X) = −\frac 1 2f^{\top} K^{−1} f − \frac 1 2 log\ |K| − \frac n 2 log\ 2\pi
+\ \ \ \ (2.29)\\
+y|f\ \sim N (f, \sigma_n^2I) 
+$$
+
+$$
+log\ p(y|X) = − \frac 1 2 y^{\top} (K + \sigma_n^2I)^{−1} y − \frac 1 2 log\ |K + \sigma_n^2I| − \frac n 2 log\ 2\pi
+\ \ \ \ (2.30)\\
+y \sim N (\pmb 0,\ K + \sigma_n^2I)
+$$
+
+A practical implementation of Gaussian process regression (GPR) is shown in ***Algorithm 2.1***. The algorithm uses Cholesky decomposition, instead of directly inverting the matrix, since it is faster and numerically more stable, see ***section A.4***. The algorithm returns the predictive mean and variance for noise free test data---to compute the predictive distribution for noisy test data $y_*$, simply add the noise variance $\sigma_n^2$ to the predictive $\mathbb V[f_*]$.
+
+## 2.3 Varying the Hyperparameters
+
+$$
+k_y(x_p,\ x_q) = \sigma_f^2 exp \Big( − \frac 1 {2l^2} (x_p − x_q)^2 \Big) + \sigma_n^2\delta_{pq}
+\ \ \ \ (2.31)
+$$
+
+-   length-scale selection
+-   model comparison
+
+
+```{r "figure2.5", eval=FALSE, include=FALSE}
+simulate_gp <- function(X1, X2, l = 1, 
+                          sigma_f = 1, 
+                          sigma_n = 0.1, ...) {
+  Sigma <- matrix(rep(0, length(X1) * length(X2)),
+                  nrow = length(X1))
+  for (i in 1:nrow(Sigma)) {
+    for (j in 1:ncol(Sigma)) {
+      Sigma[i, j] <- sigma_f^2 * exp(-0.5 * (abs(X1[i] - X2[j]) / l)^2)
+    }
+  }
+  ## eq 2.31 the delta is the kronecker delta
+  Sigma <- Sigma + sigma_n^2 * diag(nrow(Sigma))
+  data_new <- MASS::mvrnorm(1, mu = rep(0, n), Sigma) %>%
+    cbind(., input) %>%
+    data.frame() %>%
+    select(x = 1, y = 2)
+  return(data_new)
+}
+
+set.seed(555)
+n = 500
+input <- seq(-5, 5, len = n)
+data25 <- simulate_gp(input, input, l = 1, 
+                      sigma_f = 1, 
+                      sigma_n = 0.5) %>%
+  arrange(by = x)
+plot(data25$x, data25$y, type = "l")
+```
+
+```{r "simulate2.6"}
+f <- data.frame(x = progsim_one$daystacked,
+                y = progsim_one$prog_y)
+x <- f$x
+n_samples <- 100
+x_star <- seq(0, 28, len = 100)
+k_xx <- get_se_Sigma(x, x, 1)
+k_xxs <- get_se_Sigma(x, x_star, 1)
+k_xsx <- get_se_Sigma(x_star, x, 1)
+k_xsxs <- get_se_Sigma(x_star, x_star, 1)
+f_star_bar <- k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% f$y
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% k_xxs
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+fit1 <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+fig_sim1 <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit1, 
+            aes(x = x_star,
+                y = V1)) +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(name = "output, f(x)") +
+  xlab("input, x")
+
+k_xx <- get_se_Sigma(x, x, 6)
+k_xxs <- get_se_Sigma(x, x_star, 6)
+k_xsx <- get_se_Sigma(x_star, x, 6)
+k_xsxs <- get_se_Sigma(x_star, x_star, 6)
+f_star_bar <- k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% f$y
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% k_xxs
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+fit2 <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+fig_sim2 <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit2, 
+            aes(x = x_star,
+                y = V1)) +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(name = "output, f(x)") +
+  xlab("input, x")
+
+k_xx <- get_se_Sigma(x, x, 0.3)
+k_xxs <- get_se_Sigma(x, x_star, 0.3)
+k_xsx <- get_se_Sigma(x_star, x, 0.3)
+k_xsxs <- get_se_Sigma(x_star, x_star, 0.3)
+f_star_bar <- k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% f$y
+cov_f_star <- k_xsxs - k_xsx %*% solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% k_xxs
+values <- matrix(rep(0, length(x_star) * n_samples), 
+                 ncol = n_samples)
+for (i in 1:n_samples) {
+  values[, i] <- MASS::mvrnorm(1, f_star_bar, cov_f_star)
+}
+values <- cbind(x = x_star, as.data.frame(values))
+values <- reshape2::melt(values, id = "x")
+fit3 <- cbind(f_star_bar, x_star) %>% 
+  data.frame()
+fig_sim3 <- ggplot() +
+  geom_line(data = values, 
+            aes(x = x, 
+                y = value,
+                group = variable), 
+            colour = "grey80") +
+  geom_line(data = fit3, 
+            aes(x = x_star,
+                y = V1)) +
+  geom_point(data = f, 
+             aes(x = x, 
+                 y = y)) +
+  scale_y_continuous(name = "output, f(x)") +
+  xlab("input, x")
+```
+
+
+```{r fig.height=9, fig.width=6}
+gridExtra::grid.arrange(fig_sim3 + theme_classic() + ylim(c(-3, 5)),
+                        fig_sim1 + theme_classic() + ylim(c(-3, 5)),
+                        fig_sim2 + theme_classic() + ylim(c(-3, 5)),
+                        nrow = 3) 
+
+```
+
+
+
+## 2.4 Decision Theory for Regression
+
+-   optimal predictions
+-   *loss function*: $\mathcal L(y_{true} - y_{guess})$
+-   empirical Bayesian
+-   expected loss
+-   risk
+-   absolute error loss
+-   squared error loss
+
+$$
+\tilde R_{\mathcal L}(y_{guess}|x_*) = 
+\int \mathcal L(y_*,\ y_{guess})p(y_*|x_*,\ \mathcal D) dy_*
+\ \ \ \ (2.32)
+$$
+
+$$
+y_{optimal}|x_* = \underset{y_{guess}} {\mathrm {argmin}}\ \tilde R_{\mathcal L}(y_{guess}|x_*)
+\ \ \ \ (2.33)
+$$
+
+```{r}
+## now maximize the log-likelihood 
+## which is similar to minimize -log-likelihood
+#' @description function to calculate the maximum likelihood
+#' @para sigma the standard deviation
+#' @para X1 the predictive design matrix
+#' @para X0 the original independent variables
+#' @para y1 the predictive target
+#' @para y0 the target vector
+#' @example see below the function
+get_maxll <- 
+  function(X0, X1, sigma, y0, y1, ...) {
+    f_bar <- 
+  
+    ## compute log profile likelihood
+    ## see equation (2.25), (2.26), and (2.34)
+    l <- -0.5 * log(2 * pi * sigma^2) + (y1 - f_bar)^2 / (2 * sigma^2)
+
+    ## check for xi_hat value
+    xi_hat <- solution %*% t(phi) %*% y
+    colnames(xi_hat) <- "xi_hat" 
+    # print(xi_hat)
+    attr(l, "xi_hat") <- xi_hat
+
+    attr(l, "x") <- X
+    return(-l)
+  }
+```
+
+## 2.5 An Example Application
+
+-   robotic arm
+-   MSE mean square error
+-   SMSE standarized mean square error
+
+As GPR produces a Gaussian predictive density, one obtains
+
+$$
+− log\ p(y_*|\mathcal D,\ x_*) = \frac 1 2 log(2\pi \sigma_*^2) + \frac {(y_* − \bar f(x_*))^2} {2\sigma_*^2}
+\ \ \ \ (2.34)\\
+\sigma_*^2 = \mathbb V[f_*] + \sigma_n^2
+$$
+
+-   SLL standardized log loss
+
+-   MSLL mean standardized log loss
+
+-   RBD ridge body dynamics
+
+-   LWPR locally weighted projection regression
+
+## 2.6 Smoothing, Weight Functions and Equivalent Kernels
+
+$$
+K = \sum ^n_{i=1}\lambda_i \pmb{u}_i \pmb{u}_i^{\top}\\
+\bar f = K(K + \sigma_n^2I)^{−1}y
+\ \ \ \ (2.35)
+$$
+
+-   linear smoother
+
+-   eigendecomposition
+
+-   eigenvalue
+
+-   eigenvector
+
+-   degrees of freedom
+
+\alert {I think I got the point of the weight function $h(.)$ which we can think as a weight on the observation (give time point, or subset of the time range possibly), which consists of the kernel function and the information about noise.} but I did not have the 50 repeated measures at give time points (we only have one sample), I could not reproduce figure2.6 for now.
+
+```{r "weight without noise", fig.height=30, fig.width=20}
+epsilon_n <- 0.1
+f <- data.frame(x = progsim_one$daystacked,
+                y = progsim_one$prog)
+x <- f$x
+x_star <- seq(0, 28, len = 100)
+k_xx <- get_se_Sigma(x, x, 1)
+k_xxs <- get_se_Sigma(x, x_star, 1)
+k_xsx <- get_se_Sigma(x_star, x, 1)
+k_xsxs <- get_se_Sigma(x_star, x_star, 1)
+
+days <-  seq(1.5, 28, by = 0.5)
+op <- par(mfrow = c(9, 6))
+for (day in days) {
+  k_nrow <- (day - 0) / ((28 - 0) / 100)
+  small_k_xs <- k_xsx[k_nrow, ]
+  h_xs <-  small_k_xs %*% solve(k_xx)
+  plot(x, h_xs, type = "l", ylim = c(-0.3, 1.2))
+  points(x, h_xs)
+  lines(x_star, k_xsxs[, k_nrow], col = "red")
+}
+par(op)
+
+```
+
+
+
+
+```{r "weight with noise", fig.height=30, fig.width=20}
+f <- data.frame(x = progsim_one$daystacked,
+                y = progsim_one$prog_y)
+x <- f$x
+n_samples <- 100
+x_star <- seq(0, 28, len = 100)
+k_xx <- get_se_Sigma(x, x, 1)
+k_xxs <- get_se_Sigma(x, x_star, 1)
+k_xsx <- get_se_Sigma(x_star, x, 1)
+k_xsxs <- get_se_Sigma(x_star, x_star, 1)
+
+op <- par(mfrow = c(9, 6))
+for (day in days) {
+  k_nrow <- (day - 0) / ((28 - 0) / 100)
+  small_k_xs <- k_xxs[, k_nrow]
+  h_xs <- solve(k_xx + diag(28, 28) * (epsilon_n)^2) %*% small_k_xs
+  ## the k_sse is the kernel, 
+  ## get rescaled with the max value
+  ## of the scale exponential kernels
+  k_sse <- k_xsxs[, k_nrow] * max(h_xs)/max(k_xsxs[, k_nrow])
+  plot(x, h_xs, type = "l", ylim = c(-0.1, 0.7))
+  points(x, h_xs)
+  lines(x_star, k_sse, col = "red")
+}
+par(op)
+```
+
+
+$$
+y = \sum_{i=1}^n\gamma_i\ u_i 
+\Leftrightarrow\
+\gamma_i = u_i^{\top}y\\
+\bar f = \sum_{i=1}^n \frac {\gamma_i \lambda_i} {\lambda + \sigma_n^2} u_i
+\ \ \ \ (2.36)\\
+df=tr\big(K(K + \sigma_n^2I)^{-1}\big) = \sum_{i=1}^n \frac {\lambda_i} {\lambda_i + \sigma^2_n}
+$$
+
+-   **weight function**
+-   equivalent kernel
+
+$$
+h(x_*) = (K + \sigma_n^2I)^{−1}k(x_*)\\
+\bar f(x_*) = h(x_*)^{\top}y
+$$
+
+-   **kernel smoother**
+
+-   Nadaraya-Waston estimator
+
+$$
+\kappa_i = \kappa(\frac {|x_i − x_*|} {l})\\
+\hat f(x_*) = \sum^n_{i=1} w_iy_i\\
+w_i = \frac {\kappa_i} {\sum_{j=1}^n \kappa_j}
+$$
+
+## 2.7\* Incorporating Explicit Basis Functions
+
+$$
+f(x) \sim \mathcal{GP}\big(m(x),\ k(x,\ x')\big)\ \ \ \ (2.37)
+$$
+
+-   fixed/deterministic mean function
+
+$$
+\bar f_* = \mathbb {\pmb m}(X_*) + K(X_*,\ X)K_y^{−1}(y − \mathbb {\pmb m}(X))
+\ \ \ \ (2.38)\\
+K_y = K + \sigma_n^2I
+$$
+
+-   stochastic mean function
+-   polynomial regression
+
+$$
+g(x) = f(x) + h(x)^{\top}\beta,\\ 
+f(x) \sim \mathcal {GP} \big(0, k(x,\ x')\big)
+\ \ \ \ (2.39)
+$$
+
+$$
+\beta \sim \mathcal N(b,\ B)\\
+g(x) \sim \mathcal {GP}\big(h(x)^{\top}b,\ k(x,\ x') + h(x)^{\top}Bh(x')\big)
+\ \ \ \ (2.40)
+$$
+
+$$
+\bar \beta = (B^{−1} + HK_y^{−1}H^{\top})^{−1}(HK_y^{−1}y + B^{−1}b),\\
+R = H_* − HK_y^{−1}K_*\\
+\bar g(X_*) = H_*^{\top}\bar \beta + K_*^{\top}K_y^{−1}(y − H^{\top}\bar \beta) = \bar f(X_*) + R^{\top}\bar \beta\ \ \ \ (2.41a)\\
+cov(g_*) = cov(f_*) + R^{\top}(B^{−1} + HK_y^{−1}H^{\top})^{−1}R
+\ \ \ \ (2.41b)
+$$
+
+$$
+B^{-1} \rightarrow O\\
+\bar g(X_*) = \bar f(X_*) + R^{\top}\bar \beta
+\ \ \ \ (2.42a)\\
+cov(g_*) = cov(f_*) + R^{\top}(HK_y^{-1}H^{\top})^{−1}R
+\ \ \ \ (2.42b)\\
+ \bar \beta = (HK_y^{−1}H^{\top})^{−1}(HK_y^{−1}y),\\
+$$
+
+#### 2.7.1 Marginal Likelihood
+
+$$
+log\ p(y|X,\ b,\ B)=−\frac 1 2(H^{\top}b − y)^{\top}(K_y + H^{\top}BH)^{−1}(H^{\top}b − y)
+− \frac 1 2 log\ |K_y + H^{\top}BH| − \frac n 2 log\ 2\pi
+\ \ \ \ (2.43)
+$$
+
+$$
+log\ p(y|X,\ b=0,\ B)=−\frac 1 2 y^{\top}K_y^{−1}y + \frac 1 2 y^{\top}Cy −
+\frac 1 2 log\ |K_y| − \frac 1 2 log\ |B| − \frac 1 2 log\ |A| − \frac n 2 log\ 2\pi
+\ \ \ \ (2.44)\\
+A = B^{−1} + HK^{−1}_y H^{\top}\\
+C = K_y^{−1}H^{\top}A^{−1}HK_y^{−1} 
+$$
+
+Let the rank of $H^{\top}$ be $m$. Then as shown in ***Ansley and Kohn [1985]*** this means that we must discard the terms $−\frac 1 2 log\ |B| − \frac m 2 log\ 2\pi$ from ***eq. (2.44)***
+
+$$
+log\ p(y|X) = −\frac 1 2 y^{\top}K_y^{−1}y + \frac 1 2 y^{\top}Cy − \frac 1 2 log\ |K_y| − \frac 1 2 log\ |A| − \frac {n−m} 2 log\ 2\pi
+\ \ \ \ (2.45)\\
+A = HK^{−1}_y H^{\top}\\
+C = K_y^{−1}H^{\top}A^{−1}HK_y^{−1}
+$$
+
+## 2.8 History and Related Work
+
+-   time series
+-   geostatistics
+-   kriging
+-   SVM support vector machine
+-   RVM relevance vector machine
+
+## 2.9 Exercise
+
+the variance and bias trade-off
+
+```{r "plot", eval=FALSE, fig.height=5, fig.width=5.7, include=FALSE}
+plot(days, 
+     k_se0[1, ],
+     type = "l",
+     col = "purple",
+     lwd = 2,
+     bty = "l",
+     xlab = "days",
+     ylab = "kernel",
+     ylim = c(-0.1, 1))
+
+lines(days,
+     k_se1[1, ],
+     type = "l",
+     lwd = 2,
+     col = "indianred")
+
+lines(days,
+     k_se2[1, ],
+     type = "l",
+     lwd = 2,
+     col = "darkblue")
+```
+
+### matrix
+
+$$
+X=A\B\ \ \  \Leftrightarrow \ \ \  AX=B\\
+\Phi(C)^{\top}\Sigma_p\Phi(D)=K(C,\ D) \\
+$$
