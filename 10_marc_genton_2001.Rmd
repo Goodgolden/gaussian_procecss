@@ -57,7 +57,7 @@ $\sum_{i=1}^l \sum_{j=1}^l \lambda_i \lambda_j K(\pmb x_i, \pmb x_j) \leq 0 \ \ 
 
 *Symmetric positive definite functions are called covariances in statistics.*
 
-## positive defintie functions Properties
+## Positive defintie kernel properties
 
 1. If $K_1$, $K_2$ are two kernels, and $a_1$, $a_2$ are two positive real numbers, then:
 $K(\pmb x,\ \pmb z) = a_1K_1(\pmb x,\ \pmb z) + a_2K_2(\pmb x,\ \pmb z)\ \ \ \ (2)$ is a kernel. 
@@ -90,6 +90,105 @@ $K(\pmb x,\ \pmb z) = \frac {h(\pmb x + \pmb z) - h(\pmb x - \pmb z)} 4 \ \ \ \ 
 - For instance, $h(\pmb x) = \pmb x^{\top} \pmb x$. From (9), we obtain the kernel: $K(\pmb x,\ \pmb z) = \frac {(\pmb x + \pmb z)^{\top} (\pmb x + \pmb z) - (\pmb x - \pmb z)^{\top} (\pmb x - \pmb z)} 4 = \pmb x^{\top} \pmb z$.
 
 
+
+# Notes on Spectral distribution and Spectral density
+
+## Spectral distribution and density functions
+
+### Fourier transformation
+
+Given a time series {$x_t$}, its Fourier transformation is:
+
+$$
+x(\omega) = \frac {1} {2\pi} \sum_{t=-\infty}^\infty e^{−it\omega}x(t)
+$$
+
+and the inverse Fourier transform is:
+
+$$
+x(t) = \int_{−\pi} ^{\pi} e^{it\omega}x(\omega)d\omega
+$$
+
+- $\omega$ denote the frequency $(−\pi < \omega < \pi)$
+- $T$ denote the period: the minimum time that it takes the wave to go through a whole cycle
+- $T = 2\pi/\omega$
+- Given any integer number $z$, $x(t) = x(t + zT)$
+- $\phi$ denote the phase: the amount that a wave is shifted.
+
+
+### Basic model
+- $X_t = R\cos(\omega_t) + \epsilon_t$
+  - $\omega$ is the 'dominant' frequency
+  - $f = \omega = 2\pi$ is the number of cycles per unit of time
+  - $\lambda = 2\pi=\omega$ is the 'dominant' wavelength or period
+  
+- Generalized model: $X_t = \sum^k_{j=1} R_j \cos(\omega_jt + \phi_j) + \epsilon_t$, which considers the existence of $k$-relevant frequencies $\omega_1$, $\omega_2$, ..., $\omega_k$.
+
+- Given the trigonometric identity $\cos(x + y) = \cos(x)\cos(y) − \sin(x)\sin(y)$, we have that $X_t = \sum^k_{j=1} (a_j \cos(\omega_jt) + b_j \sin(\omega_jt)) + \epsilon_t$, with $a_j = R_j\cos(\phi_j)$ and $b_j = −R_j\sin(\phi_j)$.
+
+- By making $k \rightarrow \infty$, *spectral* representation of $X_t$: $X_t = \int_0^\pi \cos(\omega_t)du(\omega) + \int_0^\pi \sin(\omega_t)dv(\omega)$, with $u(\omega)$ and $v(\omega)$ are continuous stochastic processes.
+  
+##
+
+### *Wiener-Khintchine Theorem*
+
+- The *Wiener-Khintchine Theorem* says that if $\gamma(k)$ is the autocovariance function of $X_t$, there must exist a monotonically increasing function $F(\omega)$ such that 
+
+$$
+\gamma(k) = \int_0^\pi\cos(\omega_k)dF(\omega)
+$$
+
+  - $F(\omega)$ is the *spectral distribution function* of the process $X_t$.
+  - For $k = 0$, $\gamma(0) = \int_0^\pi dF(\omega) = F(\pi) = \sigma_x^2$ so all other variation in the process is for $0 < \omega < \pi$.
+  - We can redefine the spectral distribution function as: $F^*(\omega) = \frac {F(\omega)} {\sigma_x^2}$
+  - $F^*(\omega)$ is the proportion of variance accounted by $\omega$.
+
+##
+
+### CDF and PSF
+
+- $F^*(0) = 0$, $F^*(\pi) = 1$ and since $F(\omega)$ is monotonically increasing then $F^*(\omega)$ is a cummulative distribution function (CDF).
+
+- The *spectral density function* is denoted by $f(\omega)$ and
+defined as:
+
+$$
+f(\omega) = \frac {dF(\omega)} {d\omega};\ 0 < \omega < \pi
+$$
+
+  - This function is also known as the *power spectral function* or *spectrum*
+  - The existence of $f(\omega)$ is under the assumption that the spectral distribution function is differentiable everywhere (except in a set of measure zero).
+  - *Wold's Theorem*: an alternative representation for the covariance function $\gamma(k) = \int_0^\pi \cos(\omega_k)f(\omega)d\omega$. 
+
+##
+
+### Kernel and Spectrum
+
+- If the spectrum has a "peak" at $\omega_0$, this implies that $\omega_0$ is
+an important frequency of the process $X_t$.
+- The spectrum or spectral density is a theoretical function of the process $X_t$. In practice, the spectrum is usually unknown and we use the *periodogram* to estimate it.
+- There is an inverse relationship between the $f(\omega)$ and $\gamma(k)$, $f(\omega) = {\frac 1 \pi} \sum_{k=−\infty}^{\infty} \gamma(k) e^{-i\omega k}$, so the spectrum is the Fourier transformation of the autocovariance function.
+
+##
+
+### Fourier transformation
+
+- From complex analysis, recall that $e^{−i\omega k} = \cos(\omega k) − \sin(\omega k)i$
+- This implies that 
+
+$$
+f(\omega) = {\frac 1 \pi} [\gamma(0) + 2\sum^\infty_{k=1}\gamma(k)\cos(\omega k)]
+$$
+
+- The normalized spectral density $f^*(\omega)$ is defined as:
+$f^*(\omega) = \frac {f(\omega)} {\sigma^2_x} = \frac {dF^*(\omega)} {d\omega}$
+- $f^*(\omega) = {\frac 1 \pi} [1 + 2 \sum_{k=1}^\infty \rho(k)\cos(\omega k)]$ so the normalized spectrum is the Fourier transform of the autocorrelation function (ACF).
+
+
+
+
+
+
 # Stationary Kernels
 
 - A stationary kernel is one which is translation invariant:
@@ -102,7 +201,7 @@ $K(\pmb x,\ \pmb z) = K_s (\pmb x - \pmb z)$, which only depends on the lag vect
 - The quantity $F / K_S(\pmb 0)$ is called the spectral distribution function. *The Fourier dual in GPML book*. Note that (10) is simply the Fourier transform of F.
 
 
-## isotropic (or homogeneous) stationary kernel
+## Isotropic (or homogeneous) stationary kernel
 
 - When a stationary kernel depends only on the norm of the lag vector between two examples, and not on the direction, then the kernel is said to be isotropic (or homogeneous), and is thus only a function of distance:
 $K(\pmb x,\ \pmb z) = K_I(\|x - z\|)$.
@@ -115,7 +214,7 @@ $$
 
 - where $\Omega_d(x) = \Big({\frac 2 x}\Big)^{(d-2)/2} \Gamma \Big({\frac d 2}\Big) J_{(d-2)/2}(x)$, form a basis for functions in $\mathfrak R^d$. Here $F$ is any nondecreasing bounded function, $\Gamma(d/2)$ is the gamma function, and $J_v$ is the Bessel function of the first kind of order $v$. 
 
-## isotropic (or homogeneous) stationary kernel
+## Isotropic (or homogeneous) stationary kernel
 
 - Some familiar examples of $\Omega_d$ are $\Omega_1(x) = \cos(x)$, $\Omega_2(x) = J_0(x)$, and $\Omega_3(x) = \sin(x)/x$.
 
@@ -128,7 +227,7 @@ $$
 where $(x)^+ = max(x,\ 0)$ (see *Figure 1*). 
 
 
-## 
+## Spectral density and kernel
 
 ```{r out.width="80%"}
 knitr::include_graphics("figure/marc_f1.png")
@@ -149,8 +248,8 @@ knitr::include_graphics("figure/marc_f1.png")
 
 ##
 
-- The isotropic stationary kernels must fall off more quickly as the dimension d increases, as might be expectedby examining the basis functions $\Omega_d$. Those in $R^\infty$ have the greatest
-restrictions placedon them. 
+- The isotropic stationary kernels must fall off more quickly as the dimension d increases, as might be expected by examining the basis functions $\Omega_d$. Those in $R^\infty$ have the greatest
+restrictions placed on them. 
 
 - Isotropic stationary kernels that are positive definite in $\mathfrak R^d$ form a nested family of subspaces. When $d \rightarrow \infty$ the basis $\Omega_d(x)$ goes to $\exp(-x^2)$. 
 
@@ -225,7 +324,7 @@ knitr::include_graphics("figure/marc_f2f.png")
 
 ##
 
-- $\theta > 0$ as a scale parameter:
+- $\theta > 0$ as parameter:
 
 - The exponential kernel (d) is obtained from the spectral representation (11) with the spectral density:
 $f(\omega) = \frac 1 {{\frac \pi \theta} + \pi \theta\omega^2}$
@@ -286,7 +385,7 @@ $$
 
 - where $K_1$ is a nonnegative function and $K_2$ is a stationary kernel. Note that if $K_1$ is a positive constant, then (13) reduces to a stationary kernel. 
 
-- Further impose that $K_2(\pmb 0) = 1$. The variable $(\pmb x + \pmb z)/2$ has been chosen because of its suggestive meaning of the average or centroidof the examples $\pmb x$ and $\pmb z$. 
+- Further impose that $K_2(\pmb 0) = 1$. The variable $(\pmb x + \pmb z)/2$ has been chosen because of its suggestive meaning of the average or centroid of the examples $\pmb x$ and $\pmb z$. 
 
 ##
 
@@ -307,17 +406,16 @@ $$
 
 - These properties allow to find moment estimators of both $K_1$ and $K_2$ from a single realization of data, although the kernel is not stationary.
 
-##
+## Exponentially convex kernels
 
-- Another special class of locally stationary kernels is defined by kernels of the form: $K(\pmb x,\ \pmb z) = K_1(x + z) \ \ \ \ (17)$ the so-called exponentially convex kernels *(Loeve, 1946, 1948)*. 
+- Another special class of locally stationary kernels is defined by kernels of the form: $K(\pmb x,\ \pmb z) = K_1(x + z) \ \ \ \ (17)$ the so-called exponentially convex kernels *(Loeve, 1946, 1948)*. \alert{need to read more}
 
 - From (16), we see immediately that $K_1(\pmb x + \pmb z) \geq 0$. Actually, as notedby Loeve, any two-sided Laplace transform of
 a nonnegative function is an exponentially convex kernel.
 
-## 
+## Build locally stationary kernels
 
-- A large class of locally stationary kernels can therefore be constructed by multiplying an exponentially convex kernel by a
-stationary kernel, since the product of two kernels is a kernel by the property (3).
+- A large class of locally stationary kernels can therefore be constructed by multiplying an exponentially convex kernel by a stationary kernel, since the product of two kernels is a kernel by the property (3).
 
 - However, the following example is a locally stationary kernel in $\mathfrak R^1$ which is not the product of two kernels:
 $\exp[-a(x^2+z^2)]=\exp \Big[-2a\big(\frac {x+z} 2\big)^2\Big] \exp\Big[-\frac {a(x+z)^2} 2\Big],\ a>0 \ \ \ \ (18)$
@@ -368,19 +466,17 @@ $$
 K(\pmb x,\ \pmb z) = \int_{\mathfrak R^d} \int_{\mathfrak R^d} \cos(\pmb\omega_1^{\top} \pmb x-\pmb\omega_2^{\top} \pmb z)F (d\pmb\omega_1, d\pmb\omega_2)\ \ \ \ (19)
 $$
 
-
-
 - When the function $F(\pmb \omega_1, \pmb\omega_2)$ is concentrated on the diagonal $\omega_1 = \omega_2$, then (19) reduces to the spectral representation (10) of stationary kernels. Here again, many nonstationary kernels can be constructed with (19).
 
-##
+## nonstationary kernel and spectral density
 
-- Of interest are nonstationary kernels obtainedfrom (19) with $\pmb \omega_1 = \pmb \omega_2$ but with a spectral density that is not integrable in a neighborhoodaroundthe origin. Such kernels are referred to as generalized kernels *(Matheron, 1973)*. 
+- Of interest are nonstationary kernels obtained from (19) with $\pmb \omega_1 = \pmb \omega_2$ but with a spectral density that is not integrable in a neighborhood around the origin. Such kernels are referred to as generalized kernels *(Matheron, 1973)*. 
 
 - For instance, the Brownian motion generalized kernel corresponds to a spectral density $f(\omega) = 1/\|\omega\|^2$ *(Mandelbrot and Van Ness, 1968)*.
 
 - A particular family of nonstationary kernels is the one of separable nonstationary kernels: $K(\pmb x,\ \pmb z) = K_1(\pmb x)K_2(\pmb z)$, where $K_1$ and $K_2$ are stationary kernels evaluated at the examples $\pmb x$ and $\pmb z$ respectively.
 
-##
+## Separable nonstationary
 
 - Separable nonstationary kernels possess the property that their Gram matrix $G$, with $G_{ij}=K(\pmb x_i, \pmb x_j)$, can be written as a tensor product (also called Kronecker product, see *Graham, 1981*) of two vectors defined by $K_1$ and $K_2$ respectively. 
 
@@ -395,7 +491,7 @@ $$
 
 - To find a new feature space where stationarity (see *Sampson and Guttorp, 1992*) or local stationarity (see *Genton and Perrin, 2001*) can be achieved. 
 
-- A nonstationary kernel $K(\pmb x,\ \pmb z)$ is stationary reducible if there exist a bi-jective deformation $\pmb \Phi$ such that: $K(\pmb x,\ \pmb z) = K_S^*(\pmb\Phi(\pmb x) - \pmb\Phi(\pmb z))\ \ \ \ (20)$ where $K_S^*$ is a stationary kernel. 
+- A nonstationary kernel $K(\pmb x,\ \pmb z)$ is stationary reducible if there exist a bijective deformation $\pmb \Phi$ such that: $K(\pmb x,\ \pmb z) = K_S^*(\pmb\Phi(\pmb x) - \pmb\Phi(\pmb z))\ \ \ \ (20)$ where $K_S^*$ is a stationary kernel. 
 
 - For example in $\mathfrak R^2$, the nonstationary kernel defined by: $K(\pmb x,\ \pmb z) = \frac {\|\pmb x\| + \|\pmb z\| - \|\pmb z - \pmb x\|}{2 \sqrt{\|\pmb x\|\|\pmb z\|}} \ \ \ \ (21)$ is stationary reducible with the deformation: $\pmb \Phi(\pmb x_1, \pmb x_2) = \bigg(\ln\Big(\sqrt {x^2_1+x^2_2}\Big),\ \arctan(x_2/x_1)\bigg)^{\top}$, yielding the stationary kernel:
 
@@ -403,19 +499,25 @@ $$
 K_S^*(\pmb u_1, \pmb u_2) = \cosh(\frac{\pmb u_1} 2) - \sqrt{\frac {\cosh(\frac {\pmb u1} 2) - \cos(\pmb u_2)} 2} \ \ \ \ (22)
 $$
 
-##
+## Differentiable condition
 
-- Effectively, it is straightforward to check with some algebra that (22) evaluated at: $\pmb\Phi(\pmb x) - \pmb\Phi(\pmb z) = \bigg( \ln\Big(\frac {\|\pmb x\|}{\|\pmb z\|}\Big),\ \arctan \big(\frac {x_2} {x_1}\big) - \arctan\big(\frac {z_2} {z_1}\big) \bigg)^{\top}$, yields the kernel (21). 
+- Effectively, it is straightforward to check with some algebra that (22) evaluated at: $\pmb\Phi(\pmb x) - \pmb\Phi(\pmb z) = \bigg( \ln\Big(\frac {\|\pmb x\|}{\|\pmb z\|}\Big),\ \arctan \big(\frac {x_2} {x_1}\big) - \arctan\big(\frac {z_2} {z_1}\big) \bigg)^{\top}$ yields the kernel (21). 
 
-- Specifically, if $\pmb \Phi$ and its inverse are differentiable in $\mathfrak R^d$, and $K(\pmb x,\ \pmb z)$ is continuously differentiable for $\pmb x \neq \pmb y$, then $K$ satisfies (20) if and only if: $D_{\pmb x}K(\pmb x,\ \pmb z)Q^{-1}_{\pmb \Phi}(\pmb x) + D_{\pmb z}K(\pmb x,\ \pmb z)Q^{-1}_{\pmb \Phi} (\pmb z) = \pmb 0,\ \pmb x \neq \pmb y \ \ \ \ (23)$, where $Q_{\pmb \Phi}$ is the Jacobian of $\pmb \Phi$ and $D_{\pmb x}$ denotes the partial derivatives operator with respect to $\pmb x$. 
+- Specifically, if $\pmb \Phi$ and its inverse are differentiable in $\mathfrak R^d$, and $K(\pmb x,\ \pmb z)$ is continuously differentiable for $\pmb x \neq \pmb y$, then $K$ satisfies (20) if and only if: 
 
-##
+$$
+D_{\pmb x}K(\pmb x,\ \pmb z)Q^{-1}_{\pmb \Phi}(\pmb x) + D_{\pmb z}K(\pmb x,\ \pmb z)Q^{-1}_{\pmb \Phi} (\pmb z) = \pmb 0,\ \pmb x \neq \pmb y \ \ \ \ (23)
+$$
+
+where $Q_{\pmb \Phi}$ is the Jacobian of $\pmb \Phi$ and $D_{\pmb x}$ denotes the partial derivatives operator with respect to $\pmb x$. 
+
+## Not all nonstationary are reducible
 
 - Unfortunately, not all nonstationary kernels can be reduced to stationarity through a deformation $\pmb \Phi$. Consider for instance the kernel in $\mathfrak R^1$: $K(\pmb x,\ \pmb z) = \exp(2-x^6-z^6) \ \ \ \ (24)$, which is positive definite as can be seen from (6). 
 
-- It is obvious that $K(\pmb x,\ \pmb z)$ does not satisfy Equation (23) andthus is not stationary reducible. This is the motivation of *Genton and Perrin (2001)* to extend the model (20) to locally stationary kernels.
+- It is obvious that $K(\pmb x,\ \pmb z)$ does not satisfy Equation (23) and thus is not stationary reducible. This is the motivation of *Genton and Perrin (2001)* to extend the model (20) to locally stationary kernels.
 
-- We say that a nonstationary kernel $K$ is locally stationary reducible if there exists a bi-jective deformation $\pmb \Phi$ such that: $K(\pmb x,\ \pmb z) = K_1\Big(\frac {\pmb\Phi(\pmb x) + \pmb\Phi(\pmb z)} 2\Big) K_2 (\pmb\Phi(\pmb x) - \pmb\Phi(\pmb z)) \ \ \ \ (25)$, where $K_1$ is a nonnegative function and $K_2$ is a stationary kernel. 
+- We say that a nonstationary kernel $K$ is locally stationary reducible if there exists a bijective deformation $\pmb \Phi$ such that: $K(\pmb x,\ \pmb z) = K_1\Big(\frac {\pmb\Phi(\pmb x) + \pmb\Phi(\pmb z)} 2\Big) K_2 (\pmb\Phi(\pmb x) - \pmb\Phi(\pmb z)) \ \ \ \ (25)$, where $K_1$ is a nonnegative function and $K_2$ is a stationary kernel. 
 
 ##
 
@@ -432,7 +534,7 @@ $K_1(u) = \exp(-18u^2 - 12u) \ \ \ \ (27)$ and $K_2(v) = \exp \big(-\frac 9 2 v^
 - Of course, it is possible to construct nonstationary kernels that are neither stationary reducible nor locally stationary reducible.
 
 - Actually, the familiar class of polynomial kernels
-of degree $p$, $K(\pmb x,\ \pmb z) = (\pmb x^{\top}\pmb z)^p$, cannot be reduced to stationarity or local stationarity with a bi-jective transformation $\pmb \Phi$. 
+of degree $p$, $K(\pmb x,\ \pmb z) = (\pmb x^{\top}\pmb z)^p$, cannot be reduced to stationarity or local stationarity with a bijective transformation $\pmb \Phi$. 
 
 # Conclusion
 
@@ -444,11 +546,34 @@ of degree $p$, $K(\pmb x,\ \pmb z) = (\pmb x^{\top}\pmb z)^p$, cannot be reduced
   - nonstationary 
   - separable nonstationary kernels
 
-- Each class has its own particular properties and spectral representation (allows for the design of many new kernels in each
-class).
+- Each class has its own particular properties and spectral representation (allows for the design of many new kernels in each class).
   - Note that kernels from the classes presented in this paper can be combined indefinitely by using the properties (2)-(9). 
   - This should prove useful to researchers designing new kernels and algorithms for machine learning. 
   - In particular, the reducibility of nonstationary kernels to simpler kernels which are stationary or locally stationary suggests interesting applications.
+
+## 
+
+- Nonstationary kernel  
+- Generalized kernel
+
+- Separable kernel 
+- Reducible kernel
+
+- Locally Stationary kernel
+- Stationary 
+  - isotropic
+  - compactly supported
+  
+- **Stationary kernel** is a friend just like **Exponential family distribution**
+
+- The goal is to find the "Minimal Sufficient Statistics", although we cannot always find one. 
+
+<!-- - How can I get new kernels -->
+
+<!--   - "build the new from the old" -->
+<!--   - use pdf or spectrum -->
+<!--   - transformation with bijective deformation -->
+
 
 
 

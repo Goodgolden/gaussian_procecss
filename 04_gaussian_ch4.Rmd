@@ -10,12 +10,24 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.height = 3.5, 
+                      fig.width = 3.5, 
+                      out.width = '80%',
+                      fig.align='center')
 
+## for kernel generating functions
+library("kernlab")
 library("geoR")
+
+## tidy packages
 library("tidymodels")
 library("tidyverse")
+
+## directory and data clean
 library("here")
 library("janitor")
+
+## output and styles
 library("knitr")
 library("tinytex")
 library("bookdown")
@@ -56,20 +68,41 @@ $$
 \mathbb {E}[N_u] = \frac{1} {2\pi}\sqrt{\frac{-k''(0)}{k(0)}}exp\Big(-\frac{u^2}{2k(0)}\Big) \ \ \ (4.3)
 $$
 
+### 4.1.1 Mean Square Continuity and Differentiability
+
+- Let $\pmb x_1$, $\pmb x_2$, ... be a sequence of points and $x_*$ be a fixed point in $\mathbb R^D$ such that $|\pmb x_k − \pmb x_*| \rightarrow 0$ as $k \rightarrow \infty$. Then a process $f(\pmb x)$ is continuous in mean square at $\pmb x_*$ if $E[|f(\pmb x_k) − f(\pmb x_*)|^2] \rightarrow 0$ as mean square continuity as $k \rightarrow \infty$. 
+
+- If this holds for all $x_* \in \mathcal A$ where $\mathcal A$ is a subset of $\mathbb R^D$ then $f(\pmb x)$ is said to be continuous in mean square (MS) over $\mathcal A$.
+
+- A random field is continuous in mean square at $x^*$ if and only if its covariance function $k(x, x')$ is continuous at the point $x = x' = x^*$
+
+- For stationary covariance functions this reduces to checking continuity at $k(\pmb 0)$. Note that MS continuity does not necessarily imply sample function continuity
+
 $$
-\frac {\partial f(x)}
+\frac {\partial f(\pmb x)}
 {\partial x_i} = \lim_ {h \rightarrow 0} 
-\frac {f(x + he_i) − f(x)} {h}
+\frac {f(\pmb x + h \pmb e_i) − f(\pmb x)} {h}
 \ \ \ \ (4.4)
 $$
 
+Notice that it is the properties of the kernel $k$ around $\pmb 0$ that determine the smoothness properties (MS differentiability) of a stationary process.
+
 ## 4.2 Examples of Covariance Functions
 
-4.2.1 Stationary Covariance Functions
+### 4.2.1 Stationary Covariance Functions
+
+#### Theorem 4.1 (Bochner’s theorem) 
+
+A complex-valued function $k$ on $\mathbb R^D$ is the covariance function of a weakly stationary mean square continuous complex valued random process on $\mathbb R^D$ if and only if it can be represented as
 
 $$
 k(\tau) = \int_{\mathbb{R}^D} e^{2\pi i \pmb{s} \cdot \pmb{\tau}} d\mu (s) \ \ \ (4.5)
 $$
+
+where $\mu$ is a positive finite measure
+
+
+#### Wiener-Khintchine theorem
 
 The covariance function and the spectral density are Fourier duals
 
@@ -132,20 +165,6 @@ exp \Bigg(- \frac {(x_p − x_q)^2} {2(\sqrt 2l)^2} \Bigg)
 \ \ \ \ (4.13)
 $$
 
-
-
-
-
-
-
-
-```{r}
-?list.functions.in.file
-```
-
-
-
-
 ```{r fig.height=3.5, fig.width=3.5}
 set.seed(55)
 ## for one squared exponential kernel ---------------------------------------------
@@ -166,37 +185,22 @@ matplot(data[, 1], data[, -1], "l", ylim = c(-2, 2))
 
 
 ```{r eval=FALSE, include=FALSE}
-op <- par(mfrow = c(3, 3), 
-    mar = c(0.5, 0.5, 0.5, 0.5))
+op <- par(mfrow = c(3, 3))
 
 for (i in 1:9) {
   x <- runif(100)
   d <- abs(outer(x, x, FUN = "-")) 
-  
   kernel_se <- exp(-d^2 / (2 * l0^2)) 
-  
   y <- mvtnorm::rmvnorm(1, sigma = kernel_se)
   plot(x, y, "p")
 }
-
-# l2 <- 0.1
-# 
-# for (i in 1:9) {
-#   x <- runif(100)
-#   d <- abs(outer(x, x, FUN = "-")) 
-#   
-#   kernel_se <- exp(-d^2 / (2 * l2^2)) 
-#   
-#   y <- mvtnorm::rmvnorm(1, sigma = kernel_se)
-#   plot(x, y, "p")
-# }
 
 par(op)
 
 ```
 
 
-```{r "se kernel", fig.height=5, fig.width=5}
+```{r "se kernel"}
 r = seq(0, 3, len = 100)
 l1 <- c(0.01, 0.1,  0.5,
          0.9,   1,  1.2, 
@@ -316,7 +320,7 @@ for (i in 1:9) {
 }
 ```
 
-```{r "matern matrix kernel", fig.height=5, fig.width=5}
+```{r "matern matrix kernel"}
 ## change the scale length ---------------------------------------------
 r = seq(0, 3, len = 100)
 l1 <- c(0.01, 0.1,  0.5,
@@ -367,11 +371,10 @@ for (i in 1:9) {
 par(op)
 ```
 
-```{r "matern df", fig.height=6, fig.width=6}
-library(tidyverse)
+```{r "matern df", fig.height=10, fig.width=10, error=TRUE}
 set.seed(555)
-nu <- c(0.5, 1, 2, 10)
-op <- par(mfrow = c(2, 2))
+nu <- c(0.5, 0.9, 1, 1.5, 2, 10)
+op <- par(mfrow = c(3, 3))
 x <- runif(100)
 d <- abs(outer(x, x, FUN = "-"))
 for (i in 1:9) {
@@ -416,7 +419,7 @@ par(op)
 #### The $\gamma$-exponential Covariance Function
 
 $$
-k(r) = exp\Big( − \big(\frac r l\big) \Big)^\gamma,\  for\  0 < γ ≤ 2
+k(r) = exp\Big( − \big(\frac r l\big) \Big)^\gamma,\  for\  0 < \gamma ≤ 2
 \ \ \ \ (4.18)
 $$
 
@@ -544,13 +547,97 @@ $$
 r^2(x,\ x') = (x − x')^{\top}M(x − x')\\
 M = ΛΛ^{\top} + \Psi
 \ \ \ \ (4.22)
-$$ Stationary kernels can also be defined on a periodic domain, and can
+$$ 
+```{r}
+r = seq(0, 1, len = 1000)
+kernel_pp <- matrix(data = NA, nrow = 3, ncol = length(r))
+D = c(1, 3, 1)
+q = c(1, 1, 2)
+j <- D/2 + q + 1
+
+for (n in 1:length(r)) {
+  ## D =1 q =1
+  kernel_pp[1, n] <- max(c((1 - r[n])^(j[1] + 1), 0)) * ((j[1] + 1) * r[n] + 1)
+  kernel_pp[2, n] <- max(c((1 - r[n])^(j[2] + 1), 0)) * ((j[2] + 1) * r[n] + 1)
+  kernel_pp[3, n] <- max(c((1 - r[n])^(j[3] + 2), 0)) * ((j[3]^2 + 4 * j[3] + 3) * r[n]^2 +(3 * j[3] + 6) * r[n] + 3) / 3
+}
+# View(kernel_pp)
+matplot(r, t(kernel_pp), "l")
+```
+
+```{r fig.height=15, fig.width=15}
+x <- runif(1000, -2, 2)
+r <- abs(outer(x, x, FUN = "-"))
+r[r > 1] = 0
+
+op <- par(mfrow = c(3, 3))
+## q=1 ---------------------------------------------
+D <- c(1, 2, 3)
+q <- 1
+j <- D/2 + q + 1
+for (i in 1:3) {
+  kernel_pp_q1 <- (1 - r)^{j[i] + 1} * ((j[i] + 1) * r + 1)
+  sim <- mvtnorm::rmvnorm(2, sigma = kernel_pp_q1)
+  data <- cbind(x, t(sim)) %>% 
+    data.frame() %>%
+    arrange(by = x)
+  matplot(data[, 1], data[, -1], "l")
+}
+
+
+## q=2 ---------------------------------------------
+D <- c(1, 2, 3)
+q <- 2
+j <- D/2 + q + 1
+for (i in 1:3) {
+  kernel_pp_q2 <- (1 - r)^(j[i] + 2) * ((j[i]^2 + 4 * j[i] + 3) * r^2 +(3 * j[i] + 6) * r + 3) / 3
+  sim <- mvtnorm::rmvnorm(3, sigma = kernel_pp_q2)
+  data <- cbind(x, t(sim)) %>% 
+    data.frame() %>%
+    arrange(by = x)
+  matplot(data[, 1], data[, -1], "l")
+}
+
+## q=3 ---------------------------------------------
+D <- c(1, 2, 3)
+q <- 3
+j <- D/2 + q + 1
+for (i in 1:3) {
+  kernel_pp_q3 <- (1 - r)^(j[i] + 3) * 
+    ((j[i]^3 + 9 * j[i]^2 + 23 * j + 15) * r^3 + 
+       (6 * j[i]^2 + 36 * j[i] + 45) * r^2 +
+       (15 * j[i] + 45) * r + 15) / 15
+  sim <- mvtnorm::rmvnorm(5, sigma = kernel_pp_q3)
+  data <- cbind(x, t(sim)) %>% 
+    data.frame() %>%
+    arrange(by = x) 
+  matplot(data[, 1], data[, -1], "l")
+}
+
+par(op)
+```
+
+
+Stationary kernels can also be defined on a periodic domain, and can
 be readily constructed from stationary kernels on $\mathbb R$. Given a
 stationary kernel $k(x)$, the kernel
 $k_{\mathbb T}(x) = \sum_{m\in Z} k(x + ml)$ is periodic with period
 $l$.
 
 ### 4.2.2 Dot Product Covariance Functions
+
+
+```{r}
+x <- seq(0, 1, length = 100)
+input <- cbind(x, x^2) %>%
+  data.frame() %>%
+  select(x = 1, xseq = 2)
+sigma <- 0.1
+kernel_dot <- geometry::dot(input, input, d = T)
+kernel_dot
+```
+
+\alert{confused!!! is it supposed to be one summation value???} 
 
 $$
 k(x,\ x') = \sigma_0^2 + x \cdot x'\\
@@ -575,7 +662,12 @@ $$
 for\ p = 2\ in\ D = 2,\ \phi(x) = (x^2_1,\ x^2_2,\ \sqrt 2x_1x_2)^{\top}
 $$
 
+
+#############################################################################
+
 ### 4.2.3 Other Non-stationary Covariance Functions
+
+#### Neural network kernel by *Neal (1996)*
 
 $$
 f(x) = b + \sum^{N_H}_{j=1}
@@ -601,6 +693,68 @@ k_{NN}(x,\ x') = \frac 2 \pi \sin^{−1}
 \ \ \ \ (4.29)
 $$
 
+
+```{r dataset}
+set.seed(555)
+
+progsim_one <- here::here("data", "progsim_one.csv") %>%
+  read.csv(row.names = 1) %>%
+  janitor::clean_names()
+
+W <- progsim_one$prog / (1:28)
+sigma <- 0.1
+epsilon_n <- rnorm(length(progsim_one$prog), 0, sigma)
+
+progsim_one <- progsim_one %>%
+  mutate(prog_y = prog + epsilon_n)
+# View(progsim_one)
+# str(progsim_one)
+```
+
+
+```{r "neural network kernel", eval=FALSE, include=FALSE}
+x0 <- 1 
+x1 <- seq(-4, 4, length = 1000)
+X <- rbind(x0, x1)
+
+# View(X %*% Sigma %*% t(X))
+
+X_p <- X
+Sigma <- matrix(c(10, 0, 10, 0), nrow = 2)
+
+M <- t(X) %*% Sigma %*% X
+dim(M)
+
+## really confused by this part 
+## why x Sigma t(x) is a real value
+S <- (1 + 2 * M)
+SS <- (1 + 2 * M) * (1 + 2 * M)
+SQ <- sqrt(SS)
+View(SS)
+View(SQ)
+View(M)
+View(1 / sin(2 * M / SQ))
+
+##
+View(2 * M / abs(1 + 2 * M))
+S_new <- abs(1 + 2 * M)
+
+kernel_nn1 <- 2 / pi * 1 / sin(2 * M / SQ)
+kernel_nn2 <- 2 / pi * asin(2 * M / S_new)
+View(kernel_nn1)
+
+fields::image.plot(x1, x1 , kernel_nn1)
+fields::image.plot(x1, x1 , kernel_nn2)
+```
+
+
+
+#### Generalizednon stationary covariance function
+
+the squared exponential $k_G(\pmb x, \pmb x') \propto \exp(−|x − x'|^2/4\sigma_g^2)$. 
+
+For a finite value of $\sigma_u^2$, $k_G(\pmb x, \pmb x')$ comprises a squared exponential covariance function modulated by the Gaussian decay envelope function $\exp \bigg(- \frac {\pmb x^{\top} \pmb x}  {2\sigma_m^2}\bigg) \exp\bigg(− \frac {\pmb x' ^{\top} \pmb x'} {2 \sigma_m^2}\bigg)$, cf. the vertical rescaling construction in **section 4.2.4**
+
 $$
 h(x;\ u) = exp\Big(−\frac {|x − u|^2} {2\sigma^2_g}\Big),\ \
 u \sim \mathcal N(\pmb0,\ \sigma_u^2I)\\
@@ -609,7 +763,7 @@ k_G(x,\ x') = \frac 1 {(2\pi \sigma^2_u)^ {d/2}}
 \frac {|x'−u|^2} {2\sigma_g^2} -
 \frac {u^{\top}u} {2\sigma_u^2} \Big)du\\
 = \Big(\frac {\sigma_{\epsilon}} {\sigma_u}\Big)^d 
-exp \Big(− \frac {x^{\top}x} {2σ^2_m}\Big)
+exp \Big(− \frac {x^{\top}x} {2\sigma ^2_m}\Big)
 exp \Big(− \frac {|x − x'|^2} {2\sigma_s^2}\Big)
 exp \Big(− \frac {x'^{\top}x'} {2\sigma_m^2}\Big)
 \ \ \ \ (4.30)\\
@@ -656,10 +810,14 @@ us will be: \* (i) Lebesgue measure over a compact subset $\mathcal C$
 of $\mathbb R^D$ \* (ii) when there is a density $p(x)$ so that $dµ(x)$
 can be written $p(x)dx$.
 
+
+
 $$
 \int k(x,\ x')\phi(x) d\mu(x) = \lambda \phi(x')
 \ \ \ \ (4.36)
 $$
+
+
 
 **Theorem 4.2 (Mercer's theorem)** Let $(X, \mu)$ be a finite measure
 space and $k \in L_\infty (\mathcal X^2,\ \mu^2)$ be a kernel such that
@@ -675,6 +833,7 @@ and uniformly $\mu^2$ almost everywhere
 
 **Definition 4.1** A degenerate kernel has only a finite number of
 non-zero eigenvalues
+
 
 $$
 k(x − x') = \int_{\mathbb R^D}
