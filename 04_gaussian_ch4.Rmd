@@ -548,6 +548,7 @@ r^2(x,\ x') = (x − x')^{\top}M(x − x')\\
 M = ΛΛ^{\top} + \Psi
 \ \ \ \ (4.22)
 $$ 
+
 ```{r}
 r = seq(0, 1, len = 1000)
 kernel_pp <- matrix(data = NA, nrow = 3, ncol = length(r))
@@ -565,10 +566,10 @@ for (n in 1:length(r)) {
 matplot(r, t(kernel_pp), "l")
 ```
 
-```{r fig.height=15, fig.width=15}
-x <- runif(1000, -2, 2)
+```{r}
+x <- seq(-2, 2, by = 0.1)
 r <- abs(outer(x, x, FUN = "-"))
-r[r > 1] = 0
+r[r > 1] = 1
 
 op <- par(mfrow = c(3, 3))
 ## q=1 ---------------------------------------------
@@ -576,7 +577,12 @@ D <- c(1, 2, 3)
 q <- 1
 j <- D/2 + q + 1
 for (i in 1:3) {
-  kernel_pp_q1 <- (1 - r)^{j[i] + 1} * ((j[i] + 1) * r + 1)
+  kernel_pp_q1 <- (1 - r)^{j[i] + 1} * 
+    ((j[i] + 1) * r + 1) 
+  # fields::image.plot(x, x, kernel_pp_q1)
+  # chol(kernel_pp_q1)
+  # View(kernel_pp_q1)
+  # solve(kernel_pp_q1) %>% View()
   sim <- mvtnorm::rmvnorm(2, sigma = kernel_pp_q1)
   data <- cbind(x, t(sim)) %>% 
     data.frame() %>%
@@ -602,15 +608,20 @@ for (i in 1:3) {
 D <- c(1, 2, 3)
 q <- 3
 j <- D/2 + q + 1
+
 for (i in 1:3) {
-  kernel_pp_q3 <- (1 - r)^(j[i] + 3) * 
-    ((j[i]^3 + 9 * j[i]^2 + 23 * j + 15) * r^3 + 
+  kernel_pp_q3 <- ((1 - r)^(j[i] + 3) *
+    ((j[i]^3 + 9 * j[i]^2 + 23 * j + 15) * r^3 +
        (6 * j[i]^2 + 36 * j[i] + 45) * r^2 +
-       (15 * j[i] + 45) * r + 15) / 15
+       (15 * j[i] + 45) * r + 
+       15) / 15 ) %>% round(2)
+  # View(kernel_pp_q3)
+  # fields::image.plot(kernel_pp_q3)
+  # isSymmetric.matrix(kernel_pp_q3)
   sim <- mvtnorm::rmvnorm(5, sigma = kernel_pp_q3)
-  data <- cbind(x, t(sim)) %>% 
+  data <- cbind(x, t(sim)) %>%
     data.frame() %>%
-    arrange(by = x) 
+    arrange(by = x)
   matplot(data[, 1], data[, -1], "l")
 }
 
@@ -689,7 +700,7 @@ h(x;\ u) = erf(u_0 + \sum^D_{j=1} u_jx_j) ,\ \ \
 u \sim \mathcal N(0,\ \Sigma)\\
 k_{NN}(x,\ x') = \frac 2 \pi \sin^{−1} 
 \Bigg(\frac {2 \bar x^{\top}\Sigma \bar x'} 
-{\sqrt{(1 + 2\bar x^{\top}\Sigma \bar x) + (1 + 2\bar x'^{\top}\Sigma \bar x')}}\Bigg)
+{\sqrt{(1 + 2\bar x^{\top}\Sigma \bar x)  (1 + 2\bar x'^{\top}\Sigma \bar x')}}\Bigg)
 \ \ \ \ (4.29)
 $$
 
@@ -716,6 +727,7 @@ progsim_one <- progsim_one %>%
 x0 <- 1 
 x1 <- seq(-4, 4, length = 1000)
 X <- rbind(x0, x1)
+View(X)
 
 # View(X %*% Sigma %*% t(X))
 
