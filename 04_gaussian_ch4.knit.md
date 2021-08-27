@@ -10,32 +10,7 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      comment = NA,
-                      cache = TRUE)
-knitr::opts_chunk$set(fig.height = 5, 
-                      fig.width = 5.7, 
-                      out.width = '40%',
-                      fig.align='center')
 
-## for kernel generating functions
-library("kernlab")
-library("geoR")
-
-## tidy packages
-library("tidymodels")
-library("tidyverse")
-
-## directory and data clean
-library("here")
-library("janitor")
-
-## output and styles
-library("knitr")
-library("tinytex")
-library("bookdown")
-```
 
 
 # Covariance Functions
@@ -105,6 +80,7 @@ $$
 
 where $\mu$ is a positive finite measure
 
+
 #### Wiener-Khintchine theorem
 
 The covariance function and the spectral density are Fourier duals
@@ -129,15 +105,6 @@ S(s) = \frac {2\pi} {s^{D/2-1}}
 \int _0^{\infty} k(r)J_{D/2-1}
 (2\pi rs) r^{D/2} dr\ \ \ \ (4.8)
 $$
-
-The complex exponentials $e^{2\pi i \pmb s\cdot \pmb x}$ are eigenfunctions of a stationary kernel with respect to Lebesgue measure .
-
-Thus $S(s)$ is, loosely speaking, the amount of power allocated on average to the eigenfunction $e^{2\pi i \pmb s\cdot \pmb x}$ with frequency $s$. 
-
-$S(s)$ must eventually decay sufficiently fast as $|s| \rightarrow \infty$ so that it is integrable.
-
-The rate of this decay of the power spectrum gives important information about
-the smoothness of the associated stochastic process. 
 
 #### Squared Exponential Covariance Function
 
@@ -177,7 +144,8 @@ exp \Bigg(- \frac {(x_p - x_q)^2} {2(\sqrt 2l)^2} \Bigg)
 \ \ \ \ (4.13)
 $$
 
-```{r}
+
+```r
 get_symm <- function(M) {
    M[upper.tri(M)] <- t(M)[upper.tri(M)]
    return(M)
@@ -185,7 +153,8 @@ get_symm <- function(M) {
 ```
 
 
-```{r }
+
+```r
 set.seed(55)
 ## for one squared exponential kernel ---------------------------------------------
 ## simulate 100 points
@@ -205,7 +174,12 @@ matplot(data[, 1], data[, -1], "l",
         ylim = c(-2, 2))
 ```
 
-```{r "se kernel"}
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-2-1} \end{center}
+
+
+```r
 r = seq(0, 3, len = 100)
 l1 <- c(0.01, 0.1,  0.5,
          0.9,   1,  1.2, 
@@ -223,7 +197,12 @@ matplot(r, t(kernel_se),
 ```
 
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/se kernel-1} \end{center}
+
+
+
+```r
 ## change the characteristic length ---------------------------------------------
 
 l1 <- c(0.01, 0.1,  0.5,
@@ -240,12 +219,20 @@ for (i in 1:9) {
           xlab = "input, x", ylab = "output, y",
           "l", ylim = c(-2, 2))
 }
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-3-1} \end{center}
+
+```r
 par(op)
 ```
 
 
 
-```{r}
+
+```r
 get_se_Sigma <- function(X1, X2, l = 1) {
   Sigma <- matrix(rep(0, length(X1) * length(X2)), 
                   nrow = length(X1))
@@ -299,7 +286,8 @@ k_{\nu=5/2}(r) = \Big(1 + \frac {\sqrt 5r} l +
 $$
 
 
-```{r "matern matrix kernel"}
+
+```r
 ## change the scale length ---------------------------------------------
 r = seq(0, 3, len = 100)
 l1 <- c(0.01, 0.1,  0.5,
@@ -313,7 +301,13 @@ for (i in 1:9) {
 }
 matplot(r, t(kernel_mat), "l", 
         xlab = "input, x", ylab = "output, y")
+```
 
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/matern matrix kernel-1} \end{center}
+
+```r
 ## change the degree of freedom ---------------------------------------------
 
 nu <- c(0.001, 0.1, 0.5,
@@ -333,7 +327,12 @@ matplot(r, t(kernel_mat_df),
 abline(v = 1.95, lty = "dashed", col = "grey")
 ```
 
-```{r "matern scale", fig.height=10, fig.width=10, out.width = '100%'}
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/matern matrix kernel-2} \end{center}
+
+
+```r
 l1 <- c(0.01, 0.1,  0.5,
          0.9,   1,  1.2, 
            2,   5,  10)
@@ -352,10 +351,18 @@ for (i in 1:9) {
           xlab = "input, x", ylab = "output, y",
           "l", ylim = c(-2, 2))
 }
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/matern scale-1} \end{center}
+
+```r
 par(op)
 ```
 
-```{r "matern df", fig.height=10, fig.width=10, out.width = '100%', error=TRUE}
+
+```r
 set.seed(555)
 nu <- c(0.1, 0.5, 0.9, 1, 
         1.5, 2, 5, 10, 20)
@@ -377,6 +384,13 @@ for (i in 1:9) {
           xlab = "input, x", ylab = "output, y",
           "l", ylim = c(-2, 2))
 }
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/matern df-1} \end{center}
+
+```r
 par(op)
 
 ## use besselK() for the Bessel functions
@@ -385,7 +399,8 @@ par(op)
 
 Ornstein-Uhlenbeck Process and Exponential Covariance Function
 
-```{r "ornstein-uhlenbeck", fig.height=10, fig.width=10, out.width = '100%'}
+
+```r
 l1 <- c(0.01, 0.1,  0.5,
          0.9,   1,  1.2, 
            2,   5,  10)
@@ -404,7 +419,13 @@ for (i in 1:9) {
           xlab = "input, x", ylab = "output, y", 
           "l", ylim = c(-2, 2))
 }
+```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/ornstein-uhlenbeck-1} \end{center}
+
+```r
 par(op)
 ```
 
@@ -415,7 +436,8 @@ k(r) = exp\Big( - \big(\frac r l\big) \Big)^\gamma,\  for\  0 < \gamma \neq 2
 \ \ \ \ (4.18)
 $$
 
-```{r }
+
+```r
 ## change the scale length ---------------------------------------------
 l1 <- c(0.01, 0.1,  0.5,
          0.9,   1,  1.2, 
@@ -430,7 +452,12 @@ matplot(r, t(kernel_gamma),
         xlab = "input, x", ylab = "output, y", "l")
 ```
 
-```{r}
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-5-1} \end{center}
+
+
+```r
 ## change the degree of freedom ---------------------------------------------
 r = seq(0, 3, len = 1000)
 gamma <- c(0.001, 0.1, 0.5,
@@ -449,7 +476,12 @@ abline(v = 1, h = 0.365, lty = "dashed", col = "grey")
 
 
 
-```{r "gamma exponential", fig.height=10, fig.width=10, out.width = '100%'}
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-6-1} \end{center}
+
+
+
+
+```r
 l1 <- c(0.01, 0.1,  0.5,
          0.9,   1,  1.2, 
            2,   5,  10)
@@ -468,7 +500,13 @@ for (i in 1:9) {
           xlab = "input, x", ylab = "output, y",
           "l", ylim = c(-2, 2))
 }
+```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/gamma exponential-1} \end{center}
+
+```r
 par(op)
 ```
 
@@ -488,7 +526,8 @@ exp \Big(- \frac {\tau r^2} 2\Big) d\tau\\
 \ \ \ \ (4.20)
 $$
 
-```{r}
+
+```r
 ## change the alpha ---------------------------------------------
 alpha <- c(0.001, 0.1, 0.5,
           1, 2, 5,
@@ -504,7 +543,12 @@ matplot(r, t(kernel_rq),
         "l")
 ```
 
-```{r "gamma rq", fig.height=10, fig.width=10, out.width = '100%'}
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-7-1} \end{center}
+
+
+```r
 alpha <- c(0.5, 1, 2, 
           10, 100, 1000)
 op <- par(mfrow = c(3, 3))
@@ -523,23 +567,25 @@ for (i in 1:6) {
 par(op)
 ```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/gamma rq-1} \end{center}
+
 Piecewise Polynomial Covariance Functions with Compact Support
 
 $$
-\begin{split}
-& k_{ppD,0}(r) = (1 - r)^j_+,\ \ 
+k_{ppD,0}(r) = (1 - r)^j_+,\ \ 
 where\ j = \lfloor \frac D 2 \rfloor 
 + q + 1 \ \ \ \ (4.21a)\\
-& k_{ppD,1}(r) = (1 - r)^{j+1}_{+}
+k_{ppD,1}(r) = (1 - r)^{j+1}_{+}
 \big((j + 1)r + 1\big)
 \ \ \ \ (4.21b)\\
-& k_{ppD,2}(r) = (1 - r)^{j+2}_{+}
+k_{ppD,2}(r) = (1 - r)^{j+2}_{+}
 \big((j^2 + 4j + 3)r^2 + (3j + 6)r + 3\big)/3 \ \ \ \ (4.21c)\\
-& k_{ppD,3}(r) = (1 - r)^{j+3}_{+}
+k_{ppD,3}(r) = (1 - r)^{j+3}_{+}
 \big((j^3 + 9j^2 + 23j + 15)r^3+
 (6j^2 + 36j + 45)r^2 + (15j + 45)r + 15\big)/15
 \ \ \ \ (4.21d)
-\end{split}
 $$
 
 Further Properties of Stationary Covariance Functions
@@ -550,7 +596,8 @@ M = \Lambda\Lambda^{\top} + \Psi
 \ \ \ \ (4.22)
 $$ 
 
-```{r}
+
+```r
 r = seq(0, 1, len = 1000)
 kernel_pp <- matrix(data = NA, nrow = 3, ncol = length(r))
 D = c(1, 3, 1)
@@ -568,7 +615,12 @@ matplot(r, t(kernel_pp),
         xlab = "input, x", ylab = "output, y", "l")
 ```
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-8-1} \end{center}
+
+
+```r
 x <- seq(-2, 2, by = 0.1)
 r <- abs(outer(x, x, FUN = "-"))
 r[r > 1] = 1
@@ -628,7 +680,13 @@ for (i in 1:3) {
     arrange(by = x)
   matplot(data[, 1], data[, -1], xlab = "input, x", ylab = "output, y", "l")
 }
+```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-9-1} \end{center}
+
+```r
 par(op)
 ```
 
@@ -642,7 +700,8 @@ $l$.
 ### 4.2.2 Dot Product Covariance Functions
 
 
-```{r}
+
+```r
 x <- seq(0, 1, length = 100)
 input <- cbind(x, x^2) %>%
   data.frame() %>%
@@ -650,6 +709,11 @@ input <- cbind(x, x^2) %>%
 sigma <- 0.1
 kernel_dot <- geometry::dot(input, input, d = T)
 kernel_dot
+```
+
+```
+       x     xseq 
+33.50168 20.30337 
 ```
 
 
@@ -660,26 +724,21 @@ k(x,\ x') = (\sigma_0^2 + x^{\top}\Sigma_px')^p
 $$
 
 $$
-\begin{split}
-k(x,\ x') 
-& = (x \cdot x')^p \\ 
-& = \Big(\sum^D_{d=1}x_dx_d')^p \\
-& = \Big(\sum^D_{d_1=1}x_{d1}x_{d1}'\Big)... 
+k(x,\ x') = (x \cdot x')^p = 
+\Big(\sum^D_{d=1}x_dx_d')^p \\
+= \Big(\sum^D_{d_1=1}x_{d1}x_{d1}'\Big)... 
 \Big(\sum^D_{d_p=1}x_{dp}x_{dp}'\Big)\\
-& = \sum_{d_1 = 1}^D ... \sum_{d_p = 1}^D
+= \sum_{d_1 = 1}^D ... \sum_{d_p = 1}^D
 (x_{d_1}...x_{d_p})(x_{d_1}'...x_{d_p}') \\
-& \stackrel {\Delta}{=} \phi (x) \cdot \phi(x')
+\stackrel {\Delta}{=} \phi (x) \cdot \phi(x')
 \ \ \ \ (4.23)
-\end{split}
 $$
 
 $$
 \phi_m(x) = \sqrt {\frac {p!} {m_1!\ ... !\ m_D!}} x_1^{m1}\ ...\ x_D^{m_D}
-\ \ \ \ (4.24)
+\ \ \ \ (4.24)\\
+for\ p = 2\ in\ D = 2,\ \phi(x) = (x^2_1,\ x^2_2,\ \sqrt 2x_1x_2)^{\top}
 $$
-
-for $p = 2$ in $D = 2$, $\phi(x) = (x^2_1,\ x^2_2,\ \sqrt 2x_1x_2)^{\top}$
-
 
 
 #############################################################################
@@ -695,27 +754,26 @@ f(x) = b + \sum^{N_H}_{j=1}
 $$
 
 $$
-\begin{split}
-& \mathbb E_w[f(x)] = 0 \ \ \ \ (4.26)\\
+\mathbb E_w[f(x)] = 0 \ \ \ \ (4.26)\\
 \mathbb E_w[f(x)f(x')] = \sigma_b^2 + 
-\sum_j \sigma^2_\nu \mathbb E_u[h(x;\ u_j)h(x';\ u_j)] \ \ \ \ (4.27)\\
-& = \sigma_b^2 + N_H \sigma_\nu^2 \mathbb E_u[h(x;\ u)h(x';\ u)] \ \ \ \ (4.28)
+\sum_j \sigma^2_\nu \mathbb E_u[h(x;\ u_j)h(x';\ u_j)] 
+\ \ \ \ (4.27)\\
+= \sigma_b^2 + N_H \sigma_\nu^2 \mathbb E_u[h(x;\ u)h(x';\ u)] \ \ \ \ (4.28)
 $$
 
 $$
-\begin{split}
-& h(z) = erf(z) = \frac 2 {\sqrt \pi} \int_0^z e^{-t^2} dt\\
-& h(x;\ u) = erf(u_0 + \sum^D_{j=1} u_jx_j) \\
-& u \sim \mathcal N(0,\ \Sigma) \\
-& k_{NN}(x,\ x') = \frac 2 \pi \sin^{-1} 
+h(z) = erf(z) = \frac 2 {\sqrt \pi} \int_0^z e^{-t^2} dt\\
+h(x;\ u) = erf(u_0 + \sum^D_{j=1} u_jx_j) ,\ \ \
+u \sim \mathcal N(0,\ \Sigma)\\
+k_{NN}(x,\ x') = \frac 2 \pi \sin^{-1} 
 \Bigg(\frac {2 \bar x^{\top}\Sigma \bar x'} 
 {\sqrt{(1 + 2\bar x^{\top}\Sigma \bar x)  (1 + 2\bar x'^{\top}\Sigma \bar x')}}\Bigg)
 \ \ \ \ (4.29)
-\end{split}
 $$
 
 
-```{r "neural network kernel", fig.height=5, fig.width=5}
+
+```r
 ## X as \tilde x two dimensional vector augmented with 1s
 x0 <- 1 
 x1 <- seq(-4, 4, length = 100)
@@ -737,7 +795,8 @@ for (i in seq_along(1:nrow(X))) {
 knn <- 2 / pi * asin(insin)
 ```
 
-```{r fig.height=5, fig.width=5}
+
+```r
 contour(x1, x1, knn,
         ylim = c(-4, 4), 
         levels = c(-0.5, 0, 0.5, 0.95), 
@@ -749,7 +808,12 @@ contour(x1, x1, knn,
 ```
 
 
-```{r }
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-11-1} \end{center}
+
+
+
+```r
 fields::image.plot(x1, x1, knn,
                    xlab = "input, x",
                    ylab = "input, x'",
@@ -758,7 +822,12 @@ fields::image.plot(x1, x1, knn,
                    col = viridis::viridis(20))
 ```
 
-```{r}
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-12-1} \end{center}
+
+
+```r
 kernel_nn <- function(sigma_e = 10, 
                       sigma_f = 10, 
                       xmin = -4, 
@@ -777,12 +846,11 @@ kernel_nn <- function(sigma_e = 10,
   }
   knn <- 2 / pi * asin(insin)
 }
-
 ```
 
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
 
+```r
 op <- par(mfrow = c(3, 3))
 ## changing the sigma_e
 walk(c(0.1, 0.5, 1, 
@@ -797,11 +865,18 @@ walk(c(0.1, 0.5, 1,
               lwd = 2,
               xlab = "input, x",
               ylab = "input, x'"))
-par(op)
-
 ```
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-14-1} \end{center}
+
+```r
+par(op)
+```
+
+
+```r
 op <- par(mfrow = c(3, 3))
 ## changing the sigma_e
 walk(c(0.1, 0.5, 1, 
@@ -816,10 +891,18 @@ walk(c(0.1, 0.5, 1,
               lwd = 2,
               xlab = "input, x",
               ylab = "input, x'"))
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-15-1} \end{center}
+
+```r
 par(op)
 ```
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
+
+```r
 op <- par(mfrow = c(3, 3))
 x <- seq(-4, 4, length = 100)
 sigma <- c(0.1, 0.5, 1, 
@@ -833,11 +916,18 @@ for (i in 1:9) {
     arrange(by = x)
   matplot(data[, 1], data[, -1], "l")
 }
+```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-16-1} \end{center}
+
+```r
 par(op)
 ```
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
+
+```r
 op <- par(mfrow = c(3, 3))
 x <- seq(-4, 4, length = 100)
 sigma <- c(0.1, 0.5, 1, 
@@ -851,7 +941,13 @@ for (i in 1:9) {
     arrange(by = x)
   matplot(data[, 1], data[, -1], "l")
 }
+```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-17-1} \end{center}
+
+```r
 par(op)
 ```
 
@@ -862,22 +958,20 @@ the squared exponential $k_G(\pmb x, \pmb x') \propto \exp(-|x - x'|^2/4\sigma_g
 For a finite value of $\sigma_u^2$, $k_G(\pmb x, \pmb x')$ comprises a squared exponential covariance function modulated by the Gaussian decay envelope function $\exp \bigg(- \frac {\pmb x^{\top} \pmb x}  {2\sigma_m^2}\bigg) \exp\bigg(- \frac {\pmb x^{' \top} \pmb x'} {2 \sigma_m^2}\bigg)$, cf. the vertical rescaling construction in **section 4.2.4**
 
 $$
-\begin{split}
-& h(x;\ u) = exp\Big(-\frac {|x - u|^2} {2\sigma^2_g}\Big)\\
-& u \sim \mathcal N(\pmb0,\ \sigma_u^2I)\\
-& k_G(x,\ x') = \frac 1 {(2\pi \sigma^2_u)^ {d/2}} 
+h(x;\ u) = exp\Big(-\frac {|x - u|^2} {2\sigma^2_g}\Big),\ \
+u \sim \mathcal N(\pmb0,\ \sigma_u^2I)\\
+k_G(x,\ x') = \frac 1 {(2\pi \sigma^2_u)^ {d/2}} 
 \int exp \Big(- \frac {|x-u|^2} {2\sigma_g^2} - 
 \frac {|x'-u|^2} {2\sigma_g^2} -
 \frac {u^{\top}u} {2\sigma_u^2} \Big)du\\
-& = \Big(\frac {\sigma_{\epsilon}} {\sigma_u}\Big)^d 
+= \Big(\frac {\sigma_{\epsilon}} {\sigma_u}\Big)^d 
 exp \Big(- \frac {x^{\top}x} {2\sigma ^2_m}\Big)
 exp \Big(- \frac {|x - x'|^2} {2\sigma_s^2}\Big)
 exp \Big(- \frac {x'^{\top}x'} {2\sigma_m^2}\Big)
 \ \ \ \ (4.30)\\
-& \frac 1 {\sigma_\epsilon^2} = \frac 2 {\sigma_g^2} + \frac 1 {\sigma_u^2}\\
-& \sigma_s^2 = 2\sigma_g^2 + \frac {\sigma_g^4} {\sigma_u^2}\\ 
-& \sigma_m^2 = 2\sigma_u^2 + \sigma_g^2.
-\end{split}
+\frac 1 {\sigma_\epsilon^2} = \frac 2 {\sigma_g^2} + \frac 1 {\sigma_u^2}\\
+\sigma_s^2 = 2\sigma_g^2 + \frac {\sigma_g^4} {\sigma_u^2}\\ 
+\sigma_m^2 = 2\sigma_u^2 + \sigma_g^2.
 $$
 
 #### MacKay's sin(x) cos(x) kernel
@@ -889,7 +983,8 @@ k(x,\ x') = exp \Big( - \frac {2 \sin^2(\frac {x-x'} 2)} {l^2}\Big)
 $$
 
 
-```{r}
+
+```r
 kernel_mackay <- function(xmin = -4, 
                           xmax = 4, 
                           length = 100,
@@ -905,11 +1000,11 @@ kernel_mackay <- function(xmin = -4,
   kernel[is.na(kernel)] <- 0
   return(kernel)
 }
-
 ```
 
 
-```{r fig.height=10, fig.width=10, out.width = '100%', error=TRUE}
+
+```r
 op <- par(mfrow = c(3, 3))
 x <- seq(-4, 4, length = 100)
 l <- c(0.01, 0.1, 0.2, 
@@ -924,11 +1019,18 @@ for (i in 1:9) {
           xlab = "input, x", ylab = "output, y",
           "l")
 }
+```
 
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-19-1} \end{center}
+
+```r
 par(op)
 ```
 
-```{r }
+
+```r
 x1 <- seq(-4, 4, length = 100)
 kmack <- kernel_mackay()
 fields::image.plot(x1, x1, kmack,
@@ -939,6 +1041,10 @@ nlevel = 20,
 col = viridis::viridis(20))
 ```
 
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-20-1} \end{center}
+
 #### Gibbs Kernel
 
 $$
@@ -948,7 +1054,8 @@ exp \Big(- \sum_{d=1}^D \frac {(x_d - x'_d)^2} {l_d^2(x) + l_d^2(x')}\Big)\ \ \ 
 $$
 
 
-```{r fig.height=3.5, fig.width=10, out.width="100%"}
+
+```r
 ## Gibbs kernel for d = 1
 x <- seq(-10, 10, length = 100)
 # lfunction <- function(x) abs(sin(x))^2
@@ -978,7 +1085,12 @@ matplot(data[, 1], data[, -1],
 ```
 
 
-```{r }
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-21-1} \end{center}
+
+
+
+```r
 x1 <- seq(-4, 4, length = 100)
 fields::image.plot(x1, x1, kernel_gibbs,
 xlab = "input, x",
@@ -987,6 +1099,10 @@ main = "kernel Gibbs",
 nlevel = 20,
 col = viridis::viridis(20))
 ```
+
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-22-1} \end{center}
 
 
 
@@ -1006,7 +1122,8 @@ $$
 k_{PD}(x_i,\ x_j) = \sigma^2\cos\big(\omega(x - x')\big) \exp\Big(-\frac 1 {2l^2}(x - x')^2\Big)
 $$
 
-```{r fig.height=10, fig.width=10, out.width = '100%'}
+
+```r
 kernel_pd <- function(xmin = -4,
                       xmax = 4,
                       length = 100,
@@ -1036,6 +1153,13 @@ for (i in 1:9) {
     ylab = "output, y",
     "l")
 }
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-23-1} \end{center}
+
+```r
 par(op)
 
 par(op)
@@ -1053,6 +1177,13 @@ for (i in 1:9) {
     ylab = "output, y",
     "l")
 }
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-23-2} \end{center}
+
+```r
 par(op)
 op <- par(mfrow = c(3, 3))
 s <- c(0.01, 0.1, 0.2,
@@ -1068,11 +1199,19 @@ for (i in 1:9) {
     ylab = "output, y",
     "l")
 }
+```
+
+
+
+\begin{center}\includegraphics[width=1\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-23-3} \end{center}
+
+```r
 par(op)
 ```
 
 
-```{r }
+
+```r
 x1 <- seq(-4, 4, length = 100)
 kpd <- kernel_pd()
 fields::image.plot(x1, x1, kpd,
@@ -1082,6 +1221,10 @@ fields::image.plot(x1, x1, kpd,
                     nlevel = 20,
                     col = viridis::viridis(20))
 ```
+
+
+
+\begin{center}\includegraphics[width=0.4\linewidth]{04_gaussian_ch4_files/figure-latex/unnamed-chunk-24-1} \end{center}
 
 ### 4.2.4 Making New Kernels from Old
 
@@ -1094,14 +1237,11 @@ $$
 
 ## 4.3 Eigenfunction Analysis of Kernels
 
-- An eigenfunction of kernel $k$ with eigenvalue $\lambda$ with respect to
-measure eigenfunction $\mu$. 
-
-- The two measures of particular interest to us will be: 
-
-* (i) Lebesgue measure over a compact subset $\mathcal C$ of $\mathbb R^D$ 
-
-* (ii) when there is a density $p(x)$ so that $dµ(x)$ can be written $p(x)dx$.
+an eigenfunction of kernel $k$ with eigenvalue $\lambda$ with respect to
+measure eigenfunction $\mu$. The two measures of particular interest to
+us will be: \* (i) Lebesgue measure over a compact subset $\mathcal C$
+of $\mathbb R^D$ \* (ii) when there is a density $p(x)$ so that $dµ(x)$
+can be written $p(x)dx$.
 
 
 
@@ -1110,44 +1250,34 @@ $$
 \ \ \ \ (4.36)
 $$
 
-The eigenfunctions are orthogonal with respect to $\mu$ and can be chosen to be normalized so that $\int \phi_i(x)\phi_j(x) d\mu(x) = \delta_{ij}$ where $\delta_{ij}$ is the Kronecker delta.
 
-**Theorem 4.2 (Mercer's theorem)** Let $(\mathcal X, \mu)$ be a finite measure space and $k \in L_\infty (\mathcal X^2,\ \mu^2)$ be a kernel such that $T_k: L_2(X,\ \mu) \rightarrow L_2(X,\ \mu)$ is positive definite *(see eq. (4.2))*. Let $\phi_i \in L_2(X,\ \mu)$ be the normalized eigenfunctions of $T_k$ associated with the eigenvalues $\lambda_i > 0$. Then: 
+
+**Theorem 4.2 (Mercer's theorem)** Let $(X, \mu)$ be a finite measure
+space and $k \in L_\infty (\mathcal X^2,\ \mu^2)$ be a kernel such that
+$T_k: L_2(X,\ \mu) \rightarrow L_2(X,\ \mu)$ is positive definite *(see
+eq. (4.2))*. Let $\phi_i \in L_2(X,\ \mu)$ be the normalized
+eigenfunctions of T_k associated with the eigenvalues $\lambda_i > 0$.
+Then: 
 
 - 1. the eigenvalues $\{\lambda_i\}_\infty ^{i=1}$ are absolutely
 summable 
 
-- 2. $k(x,\ x') = \sum^{\infty}_{i=1} \lambda_i\phi_i(x)\phi^*_i (x')\ \ \ \ (4.37)$ holds $\mu^2$ almost everywhere, where the series converges absolutely and uniformly $\mu^2$ almost everywhere
+- 2. $k(x,\ x') = \sum^{\infty}_{i=1} \lambda_i\phi_i(x)\phi^*_i (x')\ \ \ \ (4.37)$
 
-This decomposition is just the **infinite-dimensional analogue of the diagonalization of a Hermitian matrix**. 
-
+holds $\mu^2$ almost everywhere, where the series converges absolutely
+and uniformly $\mu^2$ almost everywhere
 
 **Definition 4.1** A degenerate kernel has only a finite number of
 non-zero eigenvalues
 
-A degenerate kernel is also said to have finite rank. If a kernel is not degenerate degenerate, nondegenerate kernel it is said to be nondegenerate.
-
-If we replace this with Lebesgue measure and consider a stationary covariance function, then directly from **Bochner’s theorem eq.(4.5)** 
 
 $$
-\begin{split}
-k(x - x') 
-& = \int_{\mathbb R^D}
+k(x - x') = \int_{\mathbb R^D}
 e^{2\pi is \cdot (x-x')} d\mu(s) \\
-& = \int_{\mathbb R^D}
+= \int_{\mathbb R^D}
 e^{2\pi is·x} \Big(e^{2\pi is \cdot x'}\Big)^* d\mu(s)
 \ \ \ \ (4.38)
-\end{split}
 $$
-
-The rate of decay of the eigenvalues gives important information about the
-smoothness of the kernel.
-
-in $1-d$ with $\mu$ uniform on [0, 1], processes which are r-times mean-square differentiable have $\lambda_i \propto i^{−(2r+2)}$ asymptotically. 
-
-This makes sense as "rougher" processes have more power at high frequencies, and so their eigenvalue spectrum decays more slowly. 
-
-The same phenomenon can be read off from the power spectrum of the Mat´ern class as given in eq. (4.15).
 
 ### 4.3.1 An Analytic Example
 
@@ -1156,47 +1286,15 @@ $$
 \phi_k(x) = exp \big(- (c - a)x^2\big)H_k(\sqrt{2c}x)\ \ \ \ (4.40)
 $$
 
-
-$H_k(x)$ is the $k$th order Hermite polynomial 
-
 $$
-\begin{split}
-& H_k(x) = (-1)^k exp(x^2) \int {d^k} {dx^k} exp(-x^2) 
+ H_k(x) = (-1)^k exp(x^2) \int {d^k} {dx^k} exp(-x^2) 
 \ \ \ \ (4.41a)\\
-& a^{-1} = 4\sigma^2\\
-& b^{-1} = 2l^2\\
-& c = \sqrt{a^2 + 2ab}\\
-& A = a+b+c\\
-& B = b/A
-\end{split}
+a^{-1}=4\sigma^2\\
+b^{-1}=2l^2\\
+c=\sqrt{a^2 + 2ab}\\
+A=a+b+c\\
+B= b/A
 $$
-
-```{r}
-x <- seq(-3, 3, length = 100)
-a = 1
-b = 3
-c = sqrt(a^2 + 2 * a * b)
-A = a + b + c
-B = b / A
-lambda0 = sqrt(2 * a / A) 
-lambda1 = sqrt(2 * a / A) * B
-lambda2 = sqrt(2 * a / A) * B^2
-lambda3 = sqrt(2 * a / A) * B^3
-Lambda <- lambda0 + lambda1 + lambda2 + lambda3
-H0 <- EQL::hermite(sqrt(2 * c) * x, n = 0)
-H1 <- EQL::hermite(sqrt(2 * c) * x, n = 1)
-H2 <- EQL::hermite(sqrt(2 * c) * x, n = 2)
-H3 <- EQL::hermite(sqrt(2 * c) * x, n = 3)
-phi0 <- (lambda0) * exp(-(c - a) * x^2) * H0
-phi1 <- (lambda1) * exp(-(c - a) * x^2) * H1
-phi2 <- (lambda2) * exp(-(c - a) * x^2) * H2
-phi3 <- (lambda3) * exp(-(c - a) * x^2) * H3
-plot(x, phi1, "l", col = "indianred", ylim = c(-0.5, 0.5))
-lines(x, phi0, col = "black")
-lines(x, phi2, col = "darkgreen")
-lines(x, phi3, col = "darkblue")
-```
-
 
 ### 4.3.2 Numerical Approximation of Eigenfunctions
 
@@ -1228,8 +1326,6 @@ k(x,\ x') = \sum_{s \in \mathcal A^{*}} w_s \phi_s(x) \phi_s(x')
 $$
 
 ### 4.4.2 Fisher Kernels
-
-score and quasilikelihood
 
 $$
 k(x,\ x') = \phi_\theta ^{(x)} M^{-1}\phi_{\theta}(x')

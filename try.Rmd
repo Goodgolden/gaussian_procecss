@@ -1,0 +1,17 @@
+---
+title: "equation"
+author: "Randy"
+date: "8/25/2021"
+output: html_document
+---
+
+$$
+\begin{split}
+  \frac {\partial  \log Z_{EP}} {\partial \theta_j} & = \frac {\partial}  {\partial \theta_j}
+  (− {\frac 1 2} \pmb {\tilde \mu}^{\top} (K + \tilde \Sigma ) ^{−1} \pmb {\tilde \mu} − 
+  \frac 1 2 \log |K + \Sigma| \ \ \ \ \ \  (5.26) \\
+  & = {\frac 1 2} \pmb {\tilde \mu}^{\top} (K + S)^{−1} 
+  \frac {\partial K} {\partial \theta_j} (K + S^{−1})^{−1} \pmb {\tilde \mu} − 
+  \frac 1 2 tr\Big( (K + S^{−1})^{−1} \frac {\partial K} {\partial \theta_j} \Big)
+\end{split}
+$$

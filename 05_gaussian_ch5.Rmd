@@ -5,6 +5,43 @@ date: "8/5/2021"
 output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      comment = NA,
+                      cache = TRUE)
+knitr::opts_chunk$set(fig.height = 5, 
+                      fig.width = 5.7, 
+                      out.width = '100%',
+                      fig.align='center')
+
+## for kernel generating functions
+library("kernlab")
+library("geoR")
+
+## tidy packages
+library("tidymodels")
+library("tidyverse")
+
+## directory and data clean
+library("here")
+library("janitor")
+
+## output and styles
+library("knitr")
+library("tinytex")
+library("bookdown")
+
+
+colorize <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, x)
+  } else x
+}
+
+```
+
 # Model Selection and Adaptation of Hyperparameters
 
 ## 5.1 The Model Selection Problem
@@ -13,8 +50,199 @@ $$
 k(\pmb x_p, \pmb x_q) = \sigma_f^2 \exp \big( − \frac 1 2 (\pmb x_p − \pmb x_q)^{\top}M(\pmb x_p − \pmb x_q)\big) + \sigma_n^2\sigma_{pq}\ \ \ \ \ (5.1)
 $$
 
-$\theta  = (\{M\},\ \sigma_f^2,\ \sigma_n^2)^{\top}$ is a vector containing all the hyperparameters, and
-$\{M\}$ denotes the parameters in the symmetric matrix $M$. 
+Here we define the notations like this through the slides:
+
+- $\{_c\ a_i\}_{i=1}^I$ means to stack every units column-wise, which is a column vector;                
+- $\{_r\ b_j\}_{j=1}^J$ means to stack every units row-wise, which is row vector;           
+- $\{_d\ c_k\}_{k=1}^K$ means to stack every units in the diagonal-wise; which is a matrix.
+- $\{_m\ d_{i,\ j} \}_{i = 1 \times j =1}^{I \times J}$ means to store every units in a matrix for given $i$ and $j$ position, which is a matrix.  
+
+
+For example, for $\pmb a_i = (x_i,\ y_i,\ z_i)$ a row vector:
+
+- $\pmb {\mathcal A} = \{_c\ \pmb a_i\}_{i=1}^{I}$ is a $I \times 3$ matrix;
+- $\pmb {A} = \{_r\ \pmb a_i\}_{i=1}^{I}$ is a $1 \times 3I$ vector;
+- $\pmb {\mathbb A} = \{_d\ \pmb a_i\}_{i=1}^{I}$ is a $I \times 3I$ vector.
+
+
+The notations in Chapter 4 and 5 are a little bit confusing. Here we clarify: In **eq.5.1**, $\pmb x_p$ and $\pmb x_q$ are two "time" points. but each of them will be a vector, for example in a three dimensional space ($a,\ b,\ c$), then $\pmb x_p = (a_p,\ b_p,\ c_p)$.  
+
+`r colorize("The real matrix or vector form:", "red")` $\pmb {\mathbb x} = \{_c\  \pmb x_i^{\top} \}_{i = 1}^{T} = \{_m\ x_{ij} \}_{(i=1) \times (j = 1)}^{T \times (D = 3)}$
+
+
+
+To distinguish Chapter 4 from Chapter 5: the notation in Chapter 4 $\pmb x$ and $\pmb x'$ (in **eq.4.29** the neural network kernels) are also vectors at two "time" points. but each of them will be a vector of higher order, for example: $\pmb x = (1,\ x,\ x^2,\ x^3)$;    
+
+`r colorize("The real matrix or vector form:", "red")`  $\pmb {\mathbb x} = \{_c\  \pmb x_i^{\top} \}_{i = 1}^{T} = \Big\{_c \{_r\ x_j = x^{j}\}_{j=0}^{P}\Big\}_{i=1}^T = \{_m\ x_{ij} \}_{(i=1) \times (j = 0)}^{T \times (P = 3)}$
+
+
+```{r include=FALSE}
+library(plgp)
+eps <- sqrt(.Machine$double.eps)
+
+```
+
+
+```{r}
+nx <- 50
+x <- seq(-3, 3, length=nx)
+X <- expand.grid(x, x)
+X <- as.matrix(X)
+# dim(X)
+# View(X)
+
+## I am using the hand-calculate the distance matrix X
+## Can I just use the matrix algibra?
+# D <- plgp::distance(X)
+# ?distance
+# dim(D)
+# View(D)
+# Dsq <- D^2
+# View(D)
+```
+
+```{r}
+get_symm <- function(M) {
+   M[upper.tri(M)] <- t(M)[upper.tri(M)]
+   return(M)
+}
+```
+
+```{r "figure5.1(a)", fig.width=10}
+set.seed(2019)
+l1 <- 1
+M1 <- l1^(-2) * diag(2)
+Sigma1 <- matrix(NA, nrow = nrow(X), ncol = nrow(X))
+for (i in seq_along(1:nrow(X))) {
+  for (j in seq_along(1:nrow(X))) {
+    ## I personally define X stored column-wise
+    ## this is an earlier mistake
+    diff <- (X[i, ] - X[j, ])
+    Sigma1[i, j] <- exp(-0.5 * diff %*% M1 %*% diff)
+  }
+}
+Sigma1 <- Sigma1 %>% get_symm()
+Y1 <- mvtnorm::rmvnorm(1, sigma = Sigma1)
+
+## just too big to be plotted
+# GA::persp3D(1:nrow(Sigma1), 
+#             1:nrow(Sigma1), 
+#             Sigma1, 
+#             theta = -45, 
+#             phi = 30, 
+#             expand = 1,
+#             xlab = "grid",
+#             ylab = "grid",
+#             zlab = "Kernel Sigma1",
+#             scale = FALSE,
+#             border = "grey50",
+#             # col.palette = heat.colors,
+#             # shade = 1,
+#             box = T,
+#             axes = T)
+
+
+GA::persp3D(x, x, -matrix(Y1, ncol=nx), 
+            theta = -55, 
+            phi = 30, 
+            expand = 1.2,
+            xlab = "input x1", 
+            xlim = c(-3, 3),
+            ylab = "input x2", 
+            ylim = c(-3, 3),
+            zlab = "output y",
+            zlim = c(-2, 2.7),
+            scale = FALSE,
+            border = "grey10",
+            # col.palette = heat.colors,
+            # shade = 1,
+            box = T,
+            axes = T)
+```
+
+
+```{r "figure5.2(b)", fig.width=10}
+set.seed(2021)
+# l <- c(1, 3)
+# Sigma <- exp(-0.5 * Dsq  / l[1]^2 - 0.5 * Dsq / l[2]^2)
+l2 <- c(1, 3)
+M2 <- l2^(-2) * diag(2)
+
+# Sigma2 <- exp(-0.5 * X %*% M1 %*% t(X)) %>% get_symm()
+Sigma2 <- matrix(NA, nrow = nrow(X), ncol = nrow(X))
+for (i in seq_along(1:nrow(X))) {
+  for (j in seq_along(1:nrow(X))) {
+    ## I personally define X stored column-wise
+    ## this is an earlier mistake
+    diff <- (X[i, ] - X[j, ])
+    Sigma2[i, j] <- exp(-0.5 * diff %*% M2 %*% diff)
+  }
+}
+
+# dim(Sigma2)
+Y2 <- mvtnorm::rmvnorm(1, sigma = Sigma2)
+GA::persp3D(x, x, matrix(Y2, ncol=nx), 
+            theta = -55, 
+            phi = 30, 
+            expand = 2,
+            xlab = "input x1", 
+            xlim = c(-3, 3),
+            ylab = "input x2", 
+            ylim = c(-3, 3),
+            zlab = "output y",
+            zlim = c(-1.2, 2),
+            scale = FALSE,
+            border = "grey20",
+            # col.palette = terrain.colors,
+            # shade = 1,
+            box = T,
+            axes = T)
+```
+
+
+```{r "figure5.2(c)", fig.width=10}
+set.seed(2021)
+l3 <- 1 / 6^2 * diag(2)
+Lambda <- matrix(c(1, -1), ncol = 1)
+M3 <- Lambda %*% t(Lambda) + l3 %>% as.matrix() 
+
+Sigma3 <- matrix(NA, nrow = nrow(X), ncol = nrow(X))
+
+for (i in seq_along(1:nrow(X))) {
+  for (j in seq_along(1:nrow(X))) {
+    ## I personally define X stored column-wise
+    ## this is an earlier mistake
+    ## Sigma3[i, j] <- exp(-0.5 * X[i, ] %*% M3 %*% X[j, ])
+    diff <- (X[i, ] - X[j, ])
+    Sigma3[i, j] <- exp(-0.5 * diff %*% M3 %*% diff)
+  }
+}
+
+Y3 <- mvtnorm::rmvnorm(1, sigma = Sigma3)
+# View(Sigma3)
+# dim(Sigma)
+# sum(diag(Sigma))
+# View(Y3)
+GA::persp3D(x, x, matrix(Y3, ncol=nx), 
+            theta = -55, 
+            phi = 30, 
+            expand = 1.2,
+            xlab = "input x1", 
+            xlim = c(-3, 3),
+            ylab = "input x2", 
+            ylim = c(-3, 3),
+            zlab = "output y",
+            zlim = c(-2.5, 3),
+            scale = TRUE,
+            # col.palette = heat.colors,
+            # shade = 0.11,
+            # border = "grey35",
+            # box = T,
+            axes = T)
+```
+
+
+$\theta  = (\{M\},\ \sigma_f^2,\ \sigma_n^2)^{\top}$ is a vector containing all the hyperparameters, and $\{M\}$ denotes the parameters in the symmetric matrix $M$. 
 
 $$
 M_1 = \pmb {\mathcal l}^{−2}I, \ \ \ \ (5.2a)\\
@@ -29,6 +257,7 @@ $M_2$ (automatic relevance determination): the inverse of the length-scale deter
 
 $M_3$ (factor analysis distance): seeks to explain the data
 through a low rank plus diagonal decomposition. 
+
 
 Although there are endless variations in the suggestions for model selection in the literature three general principles cover
 most:           
@@ -53,7 +282,7 @@ $$
 $p(\pmb y|X, \pmb w, \mathcal {H_i})$ is the likelihood; 
 $p(\pmb w|\pmb \theta , \mathcal {H_i})$ is the parameter prior.
 
-\alert {why ${p(\pmb y|X, \pmb w, \mathcal {H_i})p(\pmb w|\pmb \theta , \mathcal {H_i})}$ is the joint? $p(\pmb w, \pmb y|X, \pmb \theta, \mathcal {H_i})$}
+<!-- \alert {why ${p(\pmb y|X, \pmb w, \mathcal {H_i})p(\pmb w|\pmb \theta , \mathcal {H_i})}$ is the joint? $p(\pmb w, \pmb y|X, \pmb \theta, \mathcal {H_i})$} -->
 
 $$
 p(\pmb y|X, \pmb \theta , \mathcal {H_i}) = \int p(\pmb y|X, \pmb w, \mathcal {H_i})p(\pmb w|\pmb \theta , \mathcal {H_i}) d\pmb w\ \ \ \ (5.4)
@@ -223,9 +452,6 @@ $$
 
 with hyperparameters $\pmb \theta = (\theta_1,\ ...,\ \theta_{11})^{\top}$
 
-#### Robot Arm Inverse Dynamics
-
-
 
 ## 5.5 Model Selection for GP Classification
 
@@ -254,7 +480,6 @@ $$
 {\frac 1 2} \hat {\pmb f}^{\top} K^{-1} 
 \frac {\partial K} {\partial \theta_j} K^{-1} \hat {\pmb f}
 - {\frac 1 2} tr\Bigg((W^{-1} + K)^{-1} \frac {\partial K} {\partial \theta_j}\Bigg) \ \ \ \ \ (5.22)
-
 $$
 
 
@@ -283,64 +508,61 @@ where we have used the chain rule $\partial /\partial \theta_j = \partial  {\hat
 
 
 
-input: X (inputs), y (±1 targets), \theta  (hypers), p(y|f) (likelihood function)
-2: compute K compute covariance matrix from X and \theta 
-(f, a) := mode K, y, p(y|f) locate posterior mode using Algorithm 3.1
-4: W := −\nabla\nabla \log p(y|f)
-L := cholesky(I + W 12 KW \frac 1 2  ) solve LL^{\top} = B = I + W \frac 1 2  KW \frac 1 2 
-6: \log Z := −12a^{\top}f + \log p(y|f) − P \log(diag(L)) eq. (5.20)
-R := W 12 L^{\top}\\(L\W \frac 1 2  ) R = W \frac 1 2  (I + W \frac 1 2  KW 12 )−1W \frac 1 2 
-8: C := L\\(W \frac 1 2  K)
-s2 := −12 diag  diag(K) − diag(C^{\top}C)\nabla3 \log p(y|f) o eq. (5.23)
-10: for j := 1 . . . dim(\theta ) do
-C := \partial K/\partial \theta j compute derivative matrix from X and \theta 
-12: s1 := \frac 1 2 a^{\top}Ca − 12 tr(RC) eq. (5.22)
-b := C\nabla \log p(y|f)
-14: s3 := b − KRb o eq. (5.24)
-\nablaj \log Z := s1 + s^{\top} 2 s3 eq. (5.21)
-16: end for
-return: \log Z (\log marginal likelihood), \nabla \log Z (partial derivatives)
+1. input: $X$ (inputs), $y$ ($\pm\ 1$ targets), $\pmb \theta$  (hypers), $p(\pmb y|\pmb f)$ (likelihood function)
+2. compute $K$ compute covariance matrix from $X$ and $\pmb \theta$             
+3. $(\pmb f, \pmb a) := mode(K,\ \pmb y,\ p(\pmb y|\pmb f)$ locate posterior mode using Algorithm 3.1
+4. $W := −\nabla \nabla \log p(\pmb y|\pmb f)$                      
+5. $L := cholesky(I + W^{\frac 1 2} K W ^{\frac 1 2})$ solve $LL^{\top} = B = I + W^{\frac 1 2}KW^{\frac 1 2}$ 
+6. $\log Z := −\frac 1 2 a^{\top}f + \log p(y|f) − \sum \log(diag(L))$ eq. (5.20)
+7. $R := W 12 L^{\top}\ \(L\W \frac 1 2  ) R = W \frac 1 2  (I + W \frac 1 2  KW 12 )−1W \frac 1 2$ 
+8. $C := L\\(W \frac 1 2  K)$
+9. $s2 := −12 diag  diag(K) − diag(C^{\top}C)\nabla^3 \log p(y|f)$ eq. (5.23)
+10. for $j := 1 ... dim(\theta)$ do
+11. $C := \partial K/\partial \theta j$ compute derivative matrix from $X$ and $\theta$ 
+12. $s1 := \frac 1 2 a^{\top}Ca − 12 tr(RC)$ eq. (5.22)
+13. $b := C\nabla \log p(y|f)$
+14. $s3 := \pmb b − KR\pmb b$ eq. (5.24)
+15. $\nabla_j \log Z := s_1 + s^{\top}_2 s_3$ eq. (5.21)
+16. end for
+17. return: $\log Z$ ($\log$ marginal likelihood), $\nabla \log Z$ (partial derivatives)
 
 
 
 ## Details of the Implementation
 
-R = (W −1 + K)−1 = W 12 (I + W \frac 1 2  KW \frac 1 2  )−1W \frac 1 2  , (5.25)
+$R = (W^{−1} + K)^{−1} = W ^{\frac 1 2}(I + W ^{\frac 1 2}  KW^ {\frac 1 2 } )^{−1}W^ {\frac 1 2 }\ \ \ \ (5.25)$
 
 
-\partial  \log ZEP
-\partial \theta j =
-\partial 
-\partial \theta j
- − 1
-2
-µ˜^{\top}(K + \sigma ) ˜ −1µ˜ − 1
-2
-\log |K + \sigma ˜| (5.26)
-=
-12
-µ˜^{\top}(K + S˜−1)−1 \partial K
-\partial \theta j (K + S˜−1)−1µ˜ − 12 tr (K + S˜−1)−1 \partial K \partial \theta j .
+$$
+\begin{split}
+  \frac {\partial  \log Z_{EP}} {\partial \theta_j} & = \frac {\partial}  {\partial \theta_j}
+  (− {\frac 1 2} \tilde { \pmb \mu}^{\top} (K + \tilde \Sigma ) ^{−1} \tilde { \pmb \mu} − 
+  \frac 1 2 \log |K + \Sigma| \ \ \ \ \ \  (5.26) \\
+  & = {\frac 1 2} \tilde { \pmb \mu}^{\top} (K + \tilde S^{-1})^{−1} 
+  \frac {\partial K} {\partial \theta_j} (K + {\tilde S}^{−1})^{−1} \tilde {\pmb \mu} − 
+  \frac 1 2 tr\Big( (K + \tilde S^{−1})^{−1} \frac {\partial K} {\partial \theta_j} \Big)
+\end{split}
+$$
+
+
+
 In Algorithm 5.2 the derivatives from eq. (5.26) are implemented using
-\partial  \log ZEP
-\partial \theta j =
-12
-tr bb^{\top} − S˜\frac 1 2  B−1S \frac 1 2  \partial K \partial \theta j , (5.27)
-where b = (I − S˜12 B−1S˜12 K)ν˜.
-
-
+$$
+\frac {\partial  \log Z_{EP}} {\partial \theta_j} =
+\frac 1 2 tr\Big( (\pmb {b\ b}^{\top} − \tilde S^{\frac 1 2}  B^{−1} S^{\frac 1 2}  \frac {\partial K} {\partial \theta_j}\Big)  \ \ \ \ (5.27)
+$$
+where $b = (I − \tilde S^{\frac 1 2} B^{−1} \tilde S ^{\frac 1 2} K) \tilde \nu$.
 
 ### 5.5.3 Cross-validation
 
 
 #### Other Methods for Setting Hyperparameters
 
-A(K, y) = y^{\top}Ky
-nkKkF , (5.28)
-where kKkF denotes the Frobenius norm of the matrix K, as defined in eq. (A.16).
-Lanckriet et al. [2004] show that if K is a convex combination of Gram matrices Ki so that K = Pi νiKi with νi ≥ 0 for all i then the optimization of
-the alignment score w.r.t. the νi’s can be achieved by solving a semidefinite
-programming problem.
+$$
+A(K,\ \pmb y) = \frac {\pmb y^{\top} K \pmb y} {n\|K\|_F}\ \ \ \  (5.28)
+$$
+
+where ${n\|K\|_F}$ denotes the Frobenius norm of the matrix $K$, as defined in **eq. (A.16).** **Lanckriet et al. [2004]** show that if $K$ is a convex combination of Gram matrices $K_i$ so that $K = \sum_i \nu_i K_i$ with $\nu_i \geq 0$ for all $i$ then the optimization of the alignment score w.r.t. the $\nu_i$'s can be achieved by solving a semidefinite programming problem.
 
 
 
