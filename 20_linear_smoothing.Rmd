@@ -1,0 +1,187 @@
+---
+title: "20_practice"
+author: "Randy"
+date: "12/10/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Linear Smoothing
+
+## Nadaraya-Waston Estimator
+
+$$
+\hat r_n (x) = \sum^n_{i=1} l_i(x) Y_i
+$$
+
+weight function
+
+$$
+l_i(x) = \frac {K\big(\frac {x - x_i} {h}\big)}{\sum^n_{j=1} K\big(\frac {x - x_j} {h}\big)}
+$$
+risk of Nadaraya-Waston estimator
+
+$$
+R(\hat r_n,\ r) = \frac {h_n^4} {4} \Bigg(\int x^2 K(x)dx \Bigg)^2\int \Bigg(r''(x) + 2r'(x) \frac{f'(x)} {f(x)} K(x)dx \Bigg)^2dx + \frac{\sigma^2 \int K^2(x)dx} {nh_n} \int \frac {1} {f(x)}dx
+ + o(nh_n^{-1}) + o(h_n^4)
+$$
+
+as $h_n \rightarrow 0$ and $nh_n \rightarrow \infty$ 
+
+
+### Import the dataset
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+## tidy packages
+library("tidyverse")
+
+## directory and data clean
+library("here")
+library("janitor")
+
+## output and styles
+library("knitr")
+library("tinytex")
+library("bookdown")
+
+
+progsim_one <- here::here("data", "progsim_one.csv") %>%
+  read.csv(row.names = 1) %>%
+  janitor::clean_names()
+
+## add small scale Gaussian noise
+sigma <- 0.1
+epsilon_n <- rnorm(length(progsim_one$prog), 0, sigma)
+progsim_one <- progsim_one %>%
+  mutate(prog_y = prog + epsilon_n)
+
+```
+
+
+
+### Outcomes
+
+```{r fig.height=3, fig.width=9}
+day <- progsim_one$daystacked
+y <- progsim_one$prog_y
+ggplot() +
+  geom_point(aes(day, y)) +
+  theme_bw() +
+  xlab("Day") + 
+  ylab("Y")
+```
+
+### Window size 
+
+```{r fig.height=3, fig.width=9}
+## window size of 3 ---------------------------------------------
+l1 <- 3
+kernel_se <- matrix(data = NA, nrow = length(day), ncol = length(day))
+for (i in 1:length(day)) {
+  for (j in 1:length(day)) {
+    kernel_se[i, j] <- exp(-(day[i] - day[j])^2 / (2 * l1^2))
+  }
+}
+weight1 <- t(kernel_se) / rowSums(kernel_se, na.rm = T)
+y_hat1 = weight1 %*% y
+
+## window size of 4 ---------------------------------------------
+l1 <- 4
+kernel_se <- matrix(data = NA, nrow = length(day), ncol = length(day))
+for (i in 1:length(day)) {
+  for (j in 1:length(day)) {
+    kernel_se[i, j] <- exp(-(day[i] - day[j])^2 / (2 * l1^2))
+  }
+}
+
+weight2 <- t(kernel_se) / rowSums(kernel_se, na.rm = T)
+y_hat2 = weight2 %*% y
+
+# matplot(day, weight2, "l")
+
+## the kernel 
+autoplot(zoo::zoo(kernel_se), facet = NULL) + 
+  geom_point() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("Day") + 
+  ylab("Kernel")
+
+## weight function sum up to 1 for each day
+autoplot(zoo::zoo(weight2), facet = NULL) + 
+  geom_point() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("Day") + 
+  ylab("Weight")
+
+## smoothing curve
+ggplot() +
+  geom_line(aes(day, y_hat1), color = "indianred", size = 1) +
+  geom_line(aes(day, y_hat2), color = "darkgreen", size = 1) + 
+  geom_point(aes(day, y)) +
+  theme_bw() +
+  xlab("Day") + 
+  ylab("Smoothed Y")
+```
+
+```{r fig.height=3, fig.width=9}
+## beyond window size set as 0
+l1 <- 3
+kernel_seif <- matrix(data = NA, nrow = length(day), ncol = length(day))
+for (i in 1:length(day)) {
+  for (j in 1:length(day)) {
+    kernel_seif[i, j] <- exp(-(day[i] - day[j])^2 / (2 * l1^2)) * ifelse(abs(day[i] - day[j]) > l1, 0, 1)
+  }
+}
+# View(kernel_seif)
+weight3 <- t(kernel_seif) / rowSums(kernel_seif, na.rm = T)
+y_hat3 = weight3 %*% y
+
+## kernel function for each day
+autoplot(zoo::zoo(kernel_seif), facet = NULL) + 
+  geom_point() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("Day") + 
+  ylab("Kernel")
+
+## weight funtion for each day
+autoplot(zoo::zoo(weight3), facet = NULL) + 
+  geom_point() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("Day") + 
+  ylab("Weight")
+
+## the estimation
+ggplot() +
+  geom_line(aes(day, y_hat1), color = "indianred", size = 1) +
+  geom_line(aes(day, y_hat3), color = "blue", size = 1) + 
+  geom_point(aes(day, y)) +
+  theme_bw() +
+  xlab("Day") + 
+  ylab("Smoothed Y")
+```
+
+### Summary
+
+The graphs are consistent with the equation: there are the boundary bias  and design bias $2r'(x) \frac{f'(x)}{f(x)}$ for kernel estimator.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

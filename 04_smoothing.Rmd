@@ -1,0 +1,141 @@
+---
+title: "Wasserman_ch4_8"
+author: "Randy"
+date: "11/12/2021"
+output:
+  beamer_presentation:
+    theme: CambridgeUS
+    colortheme: rose
+    fonttheme: structurebold
+    slide_level: 1
+    toc: yes
+    keep_tex: yes
+    latex_engine: xelatex
+    dev: cairo_pdf
+header-includes:
+# - \AtBeginSubsection{}
+# - \AtBeginSection{}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chapter 4 General ideas about smoothing
+
+-   Nonparametric inference
+
+    -   density estimation
+    -   regression
+
+-   Methods
+
+    -   local regression: constant, linear, and polynomial
+    -   Kernels: refers to any smooth function $K$ such that $K(x) \geq 0$ and $\int K(x) dx = 1$, $\int xK(x)dx = 0$ and $\sigma_K^2 \equiv \int x^2K(x)dx > 0$
+    -   splines and penalty likelihood
+
+# Bias- Variance Tradeoff
+
+$$
+\begin{split}
+Risk = MSE & = Bias^2 + Variance\\
+& = Ah^4 + \frac {B} {nh}
+\end{split}
+$$
+
+# 
+
+-   Estimation bias
+
+-   Variance estimation
+
+-   Confidence Set
+
+-   Curse of dimensionality
+
+# Chapter5 Nonparametric Regression
+
+-   Linear Smoother $\hat r_n(x) = \sum^n_{i=1} l_i(x) Y_i$
+
+-   Smoothing parameter & Cross-Validation: CV, GCV, and Cp
+
+-   Local Regression:: Kernel
+
+    -   Nadaraya-Waston kernel estimator for local average
+    -   designed bias and boundary bias
+    -   local polynomial regression::weighted sums of squares
+    -   comparison for kernel, local linear, and local polynomial
+
+# 
+
+-   Penalized Regression, Regularization and Splines
+
+    -   penalized sum of square, regularization for roughtness
+    -   Natural cubic spline, B-spline, and P-spline
+    -   overall, Spline is another type of linear smoother
+
+# 
+
+-   Variance estimation
+
+-   Confidence set and Confidence band
+
+-   Average Coverage
+
+-   Exponential family
+
+# 
+
+-   Multiple regressoin
+
+    -   To maintain a given degree of accuracy of an estimator, the sample size must increase exponentially with the dimension d.
+
+    -   Ruppert and Wand Theorem
+
+    -   Additive model and backfitting
+
+    -   Projection pursuit
+
+    -   Regression trees
+
+    -   MARS multivariate adaptive regression splines
+
+    -   Tensor product
+
+# Chapter6 Density
+
+-   Cross-Validation for density
+
+-   Histograms
+
+-   Kernel desity estimation
+
+    -   $\hat f_n (x) = n^{-1} \sum_{i=1}^n \frac 1 h K(\frac {(x - X_i)}{h})$
+    -   bias and varaince behavior
+    -   adaptive kernels
+
+-   local polynomials and local likelihood
+
+# Chapter7 Normal means problem and Minimax rules
+
+-   Normal means model
+
+-   Functional spaces
+
+    -   Parseval's identity
+    -   Sobolev space and ellipsoid
+    -   basis: cosine, Legendre, Legendre polynomial, and Fourier
+
+-   Both regression and density estimation are special cases for Normal means problem.
+
+-   SURE Stein's Unbiased Risk estimator
+
+-   Minimax and Pinsker's Theorem
+
+    -   Pinsker's
+    -   Pinsker's for Sobolev ellipsoids
+    -   Pinsker's for ellipsoids
+
+-   Linear Shrinkage and JSE (James and Stein estimator)
+
+write down the Bayesian
