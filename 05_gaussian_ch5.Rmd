@@ -303,6 +303,8 @@ p(\pmb y|X, \mathcal {H_i}) = \int p(\pmb y|X, \pmb \theta , \mathcal {H_i})p(\p
 $$
 
 
+### level 3
+
 $$
 p(\mathcal {H_i}|\pmb y, X) = \frac {p(\pmb y|X, \mathcal {H_i})
 p(\mathcal {H_i})}
@@ -329,7 +331,7 @@ Typical values for $k$ are in the range 3 to 10.
 An extreme case of $k$-fold cross-validation is obtained for $k = n$, the number of training cases, also known as **leave-one-out cross-validation (LOO-CV)**.
 
 
-## 5.4 Model Selection for GP Regression
+f5t## 5.4 Model Selection for GP Regression
 
 ### 5.4.1 Marginal Likelihood 
 
@@ -340,7 +342,7 @@ $$
 where $K_y = K_f + \sigma_n^2I$ is the covariance matrix for the noisy targets $\pmb y$ (and $K_f$ is the covariance matrix for the noise-free latent $\pmb f$), and we now explicitly write the marginal likelihood conditioned on the hyperparameters (the parameters of the covariance function) $\pmb \theta$. 
 
 The only term involving the observed targets is the data-fit
-$−\pmb y^{\top}K_y^{−1} \pmb y/2$; $\log |K_y|/2$ is the complexity penalty depending only on the covariance function and the inputs and $n\\log(2\pi)/2$ is a normalization constant.
+$−\pmb y^{\top}K_y^{−1} \pmb y/2$; $\log |K_y|/2$ is the complexity penalty depending only on the covariance function and the inputs and $n\log(2\pi)/2$ is a normalization constant.
 
 ```{r}
 knitr::include_graphics('figure/5-3.png')
@@ -351,7 +353,10 @@ knitr::include_graphics('figure/5-3.png')
 knitr::include_graphics('figure/5-4.png')
 ```
 
-The complexity of computing the marginal likelihood in **eq. (5.8)** is dominated by the need to invert the $K$ matrix (the $\log$ determinant of $K$ is easily computed as a by-product of the inverse). 
+The complexity of computing the marginal likelihood in **eq. (5.8)** is dominated by the need to invert the $K$ matrix with $\mathcal O(n^3)$ (the $\log$ determinant of $K$ is easily computed as a by-product of the inverse). 
+
+
+The computation of the derivatives requires only time $\mathcal O(n^2)$ per hyperparameter. Using a gradient based optimizer is advantageous.
 
 $$
 \frac \partial {\partial \theta_j} \log p(\pmb y|X, \pmb \theta) = \frac 1 2 \pmb y^{\top} K^{−1} \frac {\partial K} {\partial \theta_j} K^{−1}\pmb y − \frac 1 2  tr \Big(K^{−1} \frac {\partial K} {\partial \theta_j} \Big) = 
@@ -360,6 +365,140 @@ $$
 $$
 
 where $\pmb \alpha = K^{−1} \pmb y$. using a gradient based optimizer is advantageous.
+
+```{r}
+fit_kse <- function(sigma_f = 1,
+                    sigma_e = 0.1, 
+                    x, y, ls = 1) {
+  d <- abs(outer(x, x, FUN = "-"))
+  kernel <- sigma_f^2 * exp(-d^2 / (2 * ls^2)) 
+  k <- kernel + sigma_e^2 * diag(length(x))
+  ik <- solve(k)
+  fit <- -1 / 2 * y %*% ik %*% y
+  ## what is the |K_y|, norm?
+  pen <- - log(det(k)) / 2
+  mar <- fit + pen - length(x) / 2 * log(2 * pi)
+  
+  result <- cbind(mar, fit, pen) %>%
+    as.data.frame() %>%
+    select(mar = 1, fit = 2, pen = 3)
+  
+  # attr(kernel, "fit") <- fit
+  # attr(kernel, "penalty") <- pen
+  # attr(kernel, "marginal") <- mar
+  return(result)
+}
+
+```
+
+
+```{r}
+set.seed(2022)
+## for one squared exponential kernel ---------------------------------------------
+
+x <- seq(-1, 1, length = 100)
+## compute distance matrix
+d <- abs(outer(x, x, FUN = "-"))
+## the characteristic length scale
+l0 <- 1
+# squared exponential kernel
+kernel_se <- exp(-d^2 / (2 * l0^2)) + 0.1^2 * diag(100)
+
+data0 <- mvtnorm::rmvnorm(1, sigma = kernel_se) %>% 
+  rbind(x) %>%
+  t() %>%
+  as.data.frame() 
+data1 <- data0 %>%
+  sample_n(size = 10) %>%
+  arrange(x)
+data2 <- data0 %>%
+  sample_n(size = 25) %>%
+  arrange(x)
+data3 <- data0 %>%
+  sample_n(size = 60) %>%
+  arrange(x)
+
+log_ls <- seq(-2, 2, length = 100)
+
+all1 <- map_dfr(log_ls, 
+               ~fit_kse(x = data1$x, y = data1$V1, ls = 10^(.)))
+all2 <- map_dfr(log_ls, 
+               ~fit_kse(x = data2$x, y = data2$V1, ls = 10^(.)))
+all3 <- map_dfr(log_ls, 
+               ~fit_kse(x = data3$x, y = data3$V1, ls = 10^(.)))
+```
+
+```{r "figure5.3ab", fig.height=5, fig.width=5}
+matplot(log_ls, all1, "l", 
+        ylab = "log probability",
+        xlab = "characteristic lengthscale",
+        ylim = c(-100, 50),
+        main = "Figure 5.3a",
+        col = c("blue", "green", "red"))
+
+plot(log_ls, all1$mar, "l", 
+     ylab = "log probability",
+     xlab = "log10 characteristic lengthscale",
+     main = "Figure 5.3b",
+     ylim = c(-100, 100), 
+     xlim = c(-1.5, 2),
+     col = "indianred")
+lines(log_ls, all2$mar, "l", col = "blue")
+lines(log_ls, all3$mar, "l", col = "green")
+```
+
+```{r "figure 5.4", cache = TRUE}
+log_scale <- seq(-1.5, 1, length = 100)
+log_sigma <- seq(-2.5, 0.5, length = 100)
+
+
+# all4 <- map2(log_scale1, log_sigma1,
+#                ~fit_kse(x = data2$x, 
+#                         y = data2$V1, 
+#                         ls = 10^(.x),
+#                         sigma_e = 10^(.y))
+#              %>% select(mar)) %>%
+#   unlist() %>%
+#   matrix(nrow = 50, ncol = 50)
+
+
+marlike <- matrix(NA, nrow = 100, ncol = 100)
+
+for (i in 1:100) {
+  for (j in 1:100){
+    marlike[i, j] <- 
+      fit_kse(x = data2$x, y = data2$V1,
+              ls = 10^(log_scale[i]),
+              sigma_e = 10^(log_sigma[j])) %>%
+      select(mar) %>% as.numeric()
+  }
+}
+
+```
+
+
+```{r fig.height=4, fig.width=4}
+brk<- quantile(c(marlike), 
+               seq(0, 1, length = 101))
+image(log_scale, 
+      log_sigma,
+      marlike, 
+      breaks = brk,
+      col = viridis::plasma(100),
+      xlab = "log characteristic lengthscale",
+      ylab = "log noise std",
+      main = "Figure 5.4")
+
+cols <- viridis::plasma(25)
+contour(log_scale, 
+        log_sigma,
+        1.01^(marlike), 
+        col = cols,
+        nlevels = 20,
+        xlab = "log characteristic lengthscale",
+        ylab = "log noise std",
+        main = "Figure 5.4")
+```
 
 
 ```{r}
@@ -412,6 +551,8 @@ $$
 \sum^n_{i=1} \Bigg(\alpha_i[Z_j \pmb \alpha]_i − \frac 1 2 \Big(1 + {\frac {\alpha^2_i} {[K^{-1}]_{ii}}} \Big) 
 [Z_j K^{−1}]_{ii} \Bigg) /[K−1]_{ii} \ \ \ \ \ (5.14)
 $$
+
+The complexity is $\mathcal O(n^3)$ for both inverse $K$ as well as the derivatives per hyperparameter. This computational burden for LOO-CV method is higher than marginal likelihood.
 
 ### 5.4.3 Examples and Discussion
 
@@ -528,10 +669,11 @@ where we have used the chain rule $\partial /\partial \theta_j = \partial  {\hat
 
 
 
-## Details of the Implementation
+### Details of the Implementation
 
 $R = (W^{−1} + K)^{−1} = W ^{\frac 1 2}(I + W ^{\frac 1 2}  KW^ {\frac 1 2 } )^{−1}W^ {\frac 1 2 }\ \ \ \ (5.25)$
 
+### 5.5.2 Derivatives of the Marginal Likelihood for EP
 
 $$
 \begin{split}

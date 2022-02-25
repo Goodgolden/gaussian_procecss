@@ -1,0 +1,886 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  ignorenonframetext,
+]{beamer}
+\usepackage{pgfpages}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{caption label separator}{: }
+\setbeamercolor{caption name}{fg=normal text.fg}
+\beamertemplatenavigationsymbolsempty
+% Prevent slide breaks in the middle of a paragraph
+\widowpenalties 1 10000
+\raggedbottom
+\setbeamertemplate{part page}{
+  \centering
+  \begin{beamercolorbox}[sep=16pt,center]{part title}
+    \usebeamerfont{part title}\insertpart\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{section page}{
+  \centering
+  \begin{beamercolorbox}[sep=12pt,center]{part title}
+    \usebeamerfont{section title}\insertsection\par
+  \end{beamercolorbox}
+}
+\setbeamertemplate{subsection page}{
+  \centering
+  \begin{beamercolorbox}[sep=8pt,center]{part title}
+    \usebeamerfont{subsection title}\insertsubsection\par
+  \end{beamercolorbox}
+}
+\AtBeginPart{
+  \frame{\partpage}
+}
+\AtBeginSection{
+  \ifbibliography
+  \else
+    \frame{\sectionpage}
+  \fi
+}
+\AtBeginSubsection{
+  \frame{\subsectionpage}
+}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usetheme[]{CambridgeUS}
+\usecolortheme{rose}
+\usefonttheme{structurebold}
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Chapter 6 Relationships between GPs and Other Models, Part I},
+  pdfauthor={Randy},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\newif\ifbibliography
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\title{Chapter 6 Relationships between GPs and Other Models, Part I}
+\author{Randy}
+\date{8/25/2021}
+
+\begin{document}
+\frame{\titlepage}
+
+\begin{frame}[allowframebreaks]
+  \tableofcontents[hideallsubsections]
+\end{frame}
+\hypertarget{reproducing-kernel-hilbert-spaces}{%
+\section{6.1 Reproducing Kernel Hilbert
+Spaces}\label{reproducing-kernel-hilbert-spaces}}
+
+\begin{frame}{RKHS}
+\protect\hypertarget{rkhs}{}
+\begin{block} {Definition 6.1 (Reproducing kernel Hilbert space)} 
+Let $\mathcal H$ be a Hilbert space of real functions $f$ defined on an index set $\mathcal X$ . Then $\mathcal H$ is called a reproducing kernel Hilbert space endowed with an inner product $\langle .,\ .\rangle_{\mathcal H}$ (and norm $\|f\|_{\mathcal H} = \sqrt{\langle f,\ f\rangle_{\mathcal H}}$);
+
+If there exists a function $k: \mathcal X \times X \rightarrow \mathfrak R$ with the following properties:
+
+- $\forall \pmb x,\ k(\pmb x,\ \pmb x')$ as a function of $\pmb x'$ belongs to $\mathcal H$
+
+- $k$ has the reproducing property $\langle f(.),\ k(., x)\rangle _{\mathcal H} = f(\pmb x)$
+
+\end{block}
+
+Note also that as \(k(\pmb x, .)\) and \(k(\pmb x', .)\) are in
+\(\mathcal H\) we have that
+\(\langle k(\pmb x,\ .),\ k(\pmb x',\ .)\rangle_{\mathcal H}= k(\pmb x,\ \pmb x')\).
+The RKHS uniquely determines \(k\), and vice versa.
+\end{frame}
+
+\begin{frame}{Moore-Aronszajn Theorem}
+\protect\hypertarget{moore-aronszajn-theorem}{}
+\begin{alertblock}{Theorem 6.1 (Moore-Aronszajn theorem, Aronszajn [1950])}
+Let $\mathcal X$ be an index set. Then for every positive definite function k($\langle .,\ .\rangle$) on $\mathcal X \times \mathcal X$ there exists a unique RKHS, and vice versa.
+\end{alertblock}
+
+The Hilbert space \(L_2\) (which has the dot product
+\(\langle f,\ g\rangle_{L_2} = \int f(\pmb x)g(\pmb x)d\pmb x\))
+contains many non-smooth functions.
+
+In \(L_2\) (which is not a RKHS) the delta function is the representer
+of evaluation,
+i.e.~\(f(\pmb x) = \int f( \pmb x') \delta (x− \pmb x')d \pmb x'\).
+Kernels are the analogues of delta functions within the smoother RKHS.
+
+Note that the delta function is not itself in \(L_2\); in contrast for a
+RKHS the kernel \(k\) is the representer of evaluation and is itself in
+the RKHS.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section}{}
+The key intuition behind the RKHS formalism is that the squared norm
+\(\|f\|^2_{\mathcal H}\) can be thought of as a generalization to
+functions of the \(n\)-dimensional quadratic form
+\(\pmb f^{\top} K^{-1} \pmb f\) we have seen in earlier chapters.
+
+Consider a real positive semidefinite kernel \(k(\pmb x,\ \pmb x')\)
+with an eigenfunction expansion
+\(k(\pmb x,\ \pmb x') = \sum^N_{i=1}\lambda_i\phi _i(\pmb x)\phi_i( \pmb x')\)
+relative to a measure \(\mu\).
+
+Recall from Mercer's theorem that the eigenfunctions are orthonormal
+w.r.t. \(\mu\), i.e.~we have
+\(\int \phi_i(\pmb x)\phi_j(\pmb x) d\mu (\pmb x) = \delta_{ij}\).
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-1}{}
+We now consider a Hilbert space comprised of linear combinations of the
+eigenfunctions, i.e.~\(f(\pmb x) = \sum^N_{i=1}f_i\phi_i(\pmb x)\) with
+\(\sum ^N_{i=1}f_i^2/\lambda_i < \infty\).
+
+We assert that the inner product \(\langle f,\ g\rangle_{\mathcal H}\)
+in the Hilbert space between functions \(f(\pmb x)\) and
+\(g(\pmb x) = \sum^N_{i=1}g_i\phi_i(\pmb x)\) is defined as
+\(\langle f,\ g\rangle_{\mathcal H}= \sum_{i=1}^N \frac {f_ig_i} {\lambda_i} \ \ \ \ \ (6.1)\)
+
+Thus this Hilbert space is equipped with a norm \(\|f\|_{\mathcal H}\)
+where
+\(\|f\|^2_{\mathcal H} = \langle f,\ f\rangle_{\mathcal H}=\sum^N_{i=1}f_i^2/\lambda_i\).
+
+Note that for \(\|f\|_{\mathcal H}\) to be finite the sequence of
+coefficients \(\{f_i\}\) must decay quickly; effectively this imposes a
+smoothness condition on the space.
+\end{frame}
+
+\begin{frame}{Reproducing property}
+\protect\hypertarget{reproducing-property}{}
+\(\langle f(.),\ k(.,\ \pmb x)\rangle_{\mathcal H}= \sum_{i=1}^N \frac {f_i\lambda_i\phi _i(\pmb x)} {\lambda_i} = f(\pmb x) \ \ \ \ (6.2)\)
+
+\(\langle k(\pmb x,\ .),\ k(\pmb x',\ .)\rangle_{\mathcal H}= \sum_{i=1}^N \frac {\lambda_i\phi_i(\pmb x)\lambda_i\phi_i( \pmb x')} {\lambda_i} = k(\pmb x,\ \pmb x') \ \ \ \ (6.3)\)
+
+Notice also that \(k(\pmb x,\ .)\) is in the RKHS as it has norm
+\(\sum^N_{i=1}(\lambda_i\phi_i(\pmb x))^2/\lambda_i = k(\pmb x,\ \pmb x) < \infty\).
+
+The Hilbert space comprised of linear combinations of the eigenfunctions
+with the restriction \(\sum^N_{i=1}f_i^2/\lambda_i <\infty\) fulfills
+the two conditions given in Definition 6.1. As there is a unique RKHS
+associated with \(k(.,\ .)\), this Hilbert space must be that RKHS.
+\end{frame}
+
+\begin{frame}{The advantage of the abstract formulation of the RKHS}
+\protect\hypertarget{the-advantage-of-the-abstract-formulation-of-the-rkhs}{}
+The eigenbasis will change with different measures \(\mu\) in Mercer's
+theorem. However, the RKHS norm is in fact solely a property of the
+kernel and is invariant under this change of measure.
+
+Notice the analogy between the RKHS norm
+\(\|f\|^2 _{\mathcal H} = \langle f,\ f\rangle_{\mathcal H}= \sum^N_{i=1}f_i^2/\lambda_i\)
+and the quadratic form \(\pmb f^{\top} K^{-1} \pmb f\) if we express
+\(K\) and \(f\) in terms of the eigenvectors of \(K\) we obtain exactly
+the same form (but the sum has only n terms if \(f\) has length \(n\)).
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-2}{}
+If we sample the coefficients \(f_i\) in the eigenexpansion
+\(f(\pmb x) = \sum^N_{i=1}f_i\phi_i(\pmb x)\) from
+\(\mathcal N (0,\ \lambda_i)\) then
+
+\[
+E[\|f\|^2_{\mathcal H}] = \sum_{i=1}^N E[f_i^2] \lambda_i = \sum_{i=1}^N 1 \ \ \ (6.4)
+\]
+
+Thus if \(N\) is infinite the sample functions are not in \(\mathcal H\)
+(with probability 1) as the expected value of the RKHS norm is infinite
+
+However, note that although sample functions of this Gaussian process
+are not in \(\mathcal H\), the posterior mean after observing some data
+will lie in the RKHS, due to the smoothing properties of averaging.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-3}{}
+Another view of the RKHS can be obtained from the reproducing kernel map
+construction. We consider the space of functions \(f\) defined as
+\(\{ f(\pmb x) = \sum_{i=1}^N \alpha_i k(\pmb x,\ \pmb x_i) : n \in N,\ \pmb x_i \in \mathcal X ,\ \alpha_i \in \mathfrak R\}\ \ \ \ (6.5)\)
+
+Now let \(g(\pmb x) = \sum_{j=1}^{n'} \alpha_j' k(\pmb x, \pmb x'_j)\).
+Then we define the inner product
+\(\langle f, g\rangle_{\mathcal H}= \sum_{i=1}^n \sum_{j =1}^{n'} \alpha_i\alpha_j' k(\pmb x_i,\  \pmb x'_j)\ \ \ \ (6.6)\)
+
+Clearly condition 1 of Definition 6.1 is fulfilled under the reproducing
+kernel map construction. We can also demonstrate the reproducing
+property, as
+\(\langle k(.,\ x),\ f(.)\rangle_{\mathcal H}= \sum_{i=1}^N \alpha_ik(\pmb x,\ \pmb x_i) = f(\pmb x) \ \ \ \ (6.7)\)
+\end{frame}
+
+\hypertarget{regularization}{%
+\section{6.2 Regularization}\label{regularization}}
+
+\begin{frame}{}
+\protect\hypertarget{section-4}{}
+Inferring from a finite dataset without any assumption is clearly ``ill
+posed''. For example, in the noise-free case, any function that passes
+through the given data points is acceptable.
+
+Under a Bayesian approach our assumptions are characterized by a prior
+over functions, and given some data, we obtain a posterior over
+functions.
+
+The problem of bringing prior assumptions to bear has also been
+addressed under the regularization viewpoint, where these assumptions
+are encoded in terms of the smoothness of \(f\):
+\(J[f] = \frac \lambda 2 \|f\|^2_{\mathcal H} + Q(\pmb y,\ \pmb f)\ \ \ \ (6.8)\)
+
+\begin{itemize}
+\item
+  The first term is regularizer and represents smoothness assumptions on
+  \(f\) as encoded by a suitable RKHS
+\item
+  The second term is a data-fit term assessing the quality of the
+  prediction \(f(x_i)\) for the observed datum \(y_i\), e.g.~the
+  negative log likelihood.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Ridge Regression}
+\protect\hypertarget{ridge-regression}{}
+Ridge regression can be seen as a particular case of regularization:
+\(\|f\|^2_{\mathcal H} = \sum^N_{i=1}f_i^2/\lambda_i\) where \(f_i\) is
+the coefficient of eigenfunction \(\phi_i(\pmb x)\), we see that we are
+penalizing the weighted squared coefficients.
+
+This is taking place in feature space, rather than simply in input
+space, as per the standard formulation of ridge regression, so it
+corresponds to \textbf{kernel ridge regression}.
+
+\begin{block}{Hastie and Tibshirani eq(3.41) Ridge regression}
+\protect\hypertarget{hastie-and-tibshirani-eq3.41-ridge-regression}{}
+The ridge coefficients minimized the penalized residual sum of squares:
+
+\[
+\hat \beta^{ridge} ={argmin}_{\beta} \bigg\{\sum_{i=1}^N(y_i - \beta_0 - \sum_{j=1}^px_{ij}\beta_j)^2 + \lambda\sum\beta_j^2 \bigg\}
+\]
+\end{block}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-5}{}
+The representer theorem shows that each minimizer \(f \in {\mathcal H}\)
+of \(J[f]\) has the form
+\(f(\pmb x) = \sum^N_{i=1} \alpha_i k(\pmb x,\ \pmb x_i)\). The
+representer theorem was first stated by \textbf{Kimeldorf and Wahba
+{[}1971{]}} for the case of squared error. \textbf{O'Sullivan et
+al.~{[}1986{]}} showed that the representer theorem could be extended to
+likelihood functions arising from generalized linear models.
+
+If the data-fit term is convex (see section A.9) then there will be a
+unique minimizer \(\hat f\) of \(J[f]\). (we can regard the \(J[f]\) as
+the penalized likelihood, in ESL {[}Hastie and Tibshirani{]} the
+\(J[f]\) is the regularization term)
+
+For Gaussian process prediction with likelihoods that involve the values
+of \(f\) at the \(n\) training points only (so that \(Q(y,\ f)\) is the
+negtive log likelihood up to some terms not involving \(f\)), the
+analogue of the representer theorem is obvious.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-6}{}
+This is because the predictive distribution of
+\(f(x_*) \stackrel \bigtriangleup = f_*\) at test point \(x_*\) given
+the data \(\pmb y\) is
+\(p(f_*|\pmb y) = \int p(f_*|\pmb f)p(\pmb f|\pmb y) d\pmb f\). As
+derived in eq. (3.22) we have
+\(E[f_*|\pmb y] = \pmb k(\pmb x_*)^{\top} K^{-1} E[\pmb f|\pmb y] \ \ \ \ (6.9)\)
+due to the formulae for the conditional distribution of a multivariate
+Gaussian.
+
+Thus \(E[f_*|\pmb y] = \sum^N_{i=1}\alpha_i k(\pmb x_*,\ \pmb x_i)\),
+where \(\pmb \alpha = K^{-1} E[\pmb f|\pmb y]\).
+\end{frame}
+
+\begin{frame}{6.2.1 Regularization Defined by Differential Operators}
+\protect\hypertarget{regularization-defined-by-differential-operators}{}
+For \(\pmb x \in \mathfrak R^D\) define
+\(\|O^m f \|^2 = \int \sum_{j_1+...+j_D=m} \Bigg( \frac {\partial^m f(\pmb x)} {\partial x_1^{j_1} ... x_j^{j_D}}\Bigg)^2 dx \ \ \ \ (6.10)\)
+
+For example for \(m = 2\) and \(D = 2\):
+\(\|O^2f\|^2 = \int \Bigg[\bigg(\frac {\partial^2 f} {\partial x^2_1}\bigg)^2 + 2 \bigg(\frac {\partial^2 f} {\partial x_1 x_2}\bigg) ^2 + \bigg(\frac {\partial^2 f} {\partial x^2_2}\bigg)^2 \Bigg]dx_1 dx_2\ \ \ \ (6.11)\)
+
+Now set \(\|P f\|^2 =\sum^M_{m=0} a_m \|O^m f\|^2\) with non-negative
+coefficients \(a_m\). Notice that \(\|P f\|^2\) is translation and
+rotation invariant.
+\end{frame}
+
+\begin{frame}{\(\|O^mf\|\) is the penalty term; \(\|Pf\|\) is the a
+projection in null space}
+\protect\hypertarget{omf-is-the-penalty-term-pf-is-the-a-projection-in-null-space}{}
+In this section we assume that \(a_0 > 0\); if this is not the case and
+\(a_k\) is the first non-zero coefficient, then there is a null space of
+functions that are unpenalized. For example if \(k = 2\) then constant
+and linear functions are in the null space. This case is dealt with in
+section 6.3.
+
+\(\|P f\|^2\) penalizes \(f\) in terms of the variability of its
+function values and derivatives up to order \(M\). The key is to
+recognize that the complex exponentials
+\(\exp(2\pi i \pmb s \cdot \pmb x)\) are eigenfunctions of the
+differential operator if \(\mathcal X = \mathfrak R^D\).
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-7}{}
+\[
+\|P f\|^2 = \int \sum^M_{m=0} a_m(4\pi^2 \pmb s \cdot \pmb s)^m |\tilde f(\pmb s)|^2 ds \ \ \ \ (6.12)
+\]
+
+where \(\tilde f(\pmb s)\) is the Fourier transform of \(f(\pmb x)\).
+Comparing eq. (6.12) with eq. (6.1) we see that the kernel has the power
+spectrum
+\(S(s) = \frac 1 {\sum^M_{m=0} a_m (4\pi^2 \pmb s \cdot \pmb s)^m} \ \ \ \  (6.13)\)
+and thus by Fourier inversion we obtain the stationary kernel
+\(k(\pmb x) = \int \frac {e^{2\pi \pmb s \cdot \pmb x}} {\sum^M_{m=0} a_m(4\pi^2 \pmb s \cdot \pmb s)^m} ds\ \ \ \ (6.14)\),
+by Bochner Theorem and Wiener-Khintchin Theorem (explained why penalize
+higher frequnecy functions)
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-8}{}
+A slightly different approach to obtaining the kernel is to use calculus
+of variations to minimize \(J[f]\) with respect to \(f\). The
+Euler-Lagrange equation leads to:
+\(f(\pmb x) = \sum^n_{i=1} \alpha_i G(\pmb x − \pmb x_i)\ \ \ \ (6.15)\)
+and
+\(\sum^M_{m =0} (−1)^m a_m \nabla^{2m} G = \delta (\pmb x − \pmb x')\ \ \ \ (6.16)\),
+where \(G(\pmb x,\  \pmb x')\) is known as a Green's function. Notice
+that the Green's function also depends on the boundary conditions.
+
+For the case of \(\mathcal X = \mathfrak R^D\) by Fourier transforming
+eq. (6.16) we recognize that \(G\) is in fact the kernel \(k\).
+
+The differential operator \(\sum^M_ {m=0} (−1)^m a_m \nabla ^{2m}\) and
+the integral operator \(k(\langle .,\ .\rangle)\) are in fact inverses,
+as shown by eq. (6.16). Arfken {[}1985{]} provides an introduction to
+calculus of variations and Green's functions. RKHSs for regularizers
+defined by differential operators are \textbf{Sobolev spaces}.
+\end{frame}
+
+\begin{frame}{Sidenotes for Green's function}
+\protect\hypertarget{sidenotes-for-greens-function}{}
+If \(L\) is the linear differential operator, then:
+
+\begin{itemize}
+\item
+  the Green's function \(G\) is the solution of the equation
+  \(LG = \delta\), where \(\delta\) is Dirac's delta function;
+\item
+  the solution of the initial-value problem \(Ly = f\) is the
+  convolution \((G * f)\), where \(G\) is the Green's function.
+\end{itemize}
+
+\begin{alertblock} {Green's function}
+
+$G(x,\ s)$ of a linear differential operator $L = L(x)$ acting on distributions over a subset of the Euclidean space $\mathfrak R ^n$, at a point $s$, is any solution of $L \  G(x,\ s)=\delta (s-x)$
+
+where $\delta$ is the Dirac delta function. 
+
+This property of a Green's function can be exploited to solve differential equations of the form  $L \ u(x)=f(x)$
+
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-9}{}
+If the operator is translation invariant, that is, when \(L\) has
+constant coefficients with respect to \(x\), then the Green's function
+can be taken to be a convolution kernel, \(G(x,\ s)=G(x-s)\).
+
+\begin{block}{Motivation}
+\protect\hypertarget{motivation}{}
+A function \(G\) can be found for the operator \(L\), then multiply the
+Green's function by \(f(s)\), and then integrate with respect to \(s\),
+we obtain
+\({ \int L \  G(x,\ s)\  f(s)\  ds = \int \delta (x-s)\ f(s)\ ds=f(x)}\).
+
+Because the operator \(L = L (x)\) is linear and acts only on the
+variable \(x\) (and not on the variable of integration \(s\)), one may
+take the operator \(L\) outside of the integration, yielding
+\(L \ \int G(x,\ s)\ f(s)\ ds=f(x)\)
+
+This means that \(u(x)=\int G(x,\ s)\ f(s)\ ds\) is a solution to the
+equation \(L\ u(x)=f(x)\)
+\end{block}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-10}{}
+\begin{exampleblock}{Example 1}
+
+Set $a_0 = \alpha^2$, $a_1 = 1$ and $a_m = 0$ for $m \geq  2$ in $D = 1$. 
+Using the Fourier pair $e^{−\alpha |x|} \Leftrightarrow 2\alpha /(\alpha^2 + 4\pi ^2 s^2)$ we obtain $k(x − x') = \frac 1 {2\alpha} e^{−\alpha |x− x'|}$.
+
+Note that this is the covariance function of the Ornstein-Uhlenbeck process, see section 4.2.1.
+\end{exampleblock}
+
+\begin{exampleblock}{Example 2} 
+By setting $a_m = \frac {\sigma^{2m}} {m!2^m}$ and using the power series $e^y = \sum^\infty_{k=0} y^k/k!$ we obtain
+
+$k(\pmb x −  \pmb x') = \int \exp\big(2\pi i \pmb s \cdot (\pmb x −  \pmb x')\big) \exp \Big(−{\frac {\sigma^2} 2} (4\pi^2 \pmb s \cdot \pmb s) \Big) d \pmb s \ \ \ \ (6.17)$
+
+$k(\pmb x −  \pmb x') = {\frac 1 {(2\pi \sigma^2)^{D/2}}} \exp\Big(− \frac 1 {2\sigma^2} (\pmb x −  \pmb x')^{\top} (\pmb x −  \pmb x')\Big) \ \ \ \ (6.18)$
+
+as shown by Yuille and Grzywacz [1989]. This is the squared exponential covariance function that we have seen earlier
+\end{exampleblock}
+\end{frame}
+
+\begin{frame}{6.2.2 Obtaining the Regularized Solution}
+\protect\hypertarget{obtaining-the-regularized-solution}{}
+The representer theorem tells us the general form of the solution to eq.
+(6.8). We now consider a specific functional
+
+\[
+J[f] = \frac 1 2 \|f\|2_{\mathcal H} + \frac 1 {2\sigma_n^2}\sum_{i=1}^n \big(y_i − f(\pmb x_i)\big)^2 \ \ \ \ (6.19)
+\]
+
+which uses a squared error data-fit term (corresponding to the negative
+log likelihood of a Gaussian noise model with variance \(\sigma^2_n\)).
+
+The solution \(f(\pmb x) = \sum^N_{i=1}\alpha_ik(\pmb x,\ \pmb x_i)\)
+that minimizes eq. (6.19) was called a regularization network
+regularization network in Poggio and Girosi {[}1990{]}.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-11}{}
+Substituting \(f(\pmb x) =\sum^N_{i=1}\alpha_ik(\pmb x,\ \pmb x_i)\) and
+using
+\(\langle k(.,\ x_i),\ k(.,\ x_j)\rangle_{\mathcal H}= k(x_i,\ x_j)\) we
+obtain
+
+\[
+\begin{split}
+J[\pmb \alpha ] & = \frac 1 2 \pmb \alpha ^{\top} K \pmb \alpha  + \frac 1 {2\sigma^2_n} |\pmb y − K \pmb \alpha |^2\\
+& = \frac 1 2 \pmb \alpha ^{\top} (K + \frac 1 {\sigma^2_n} K^2)\pmb \alpha − \frac 1 \sigma^2_n \pmb y^{\top} K \pmb \alpha  + 
+\frac 1 {2\sigma^2_n} \pmb y^{\top} \pmb y \ \ \ \ (6.20)
+\end{split}
+\]
+
+Minimizing \(J\) by differentiating w.r.t. the vector of coefficients
+\(\pmb \alpha\) we obtain
+\(\hat {\pmb \alpha} = (K + \sigma_n^2 I)^{−1}\pmb y\), so that the
+prediction for a test point \(x_*\) is
+\(\hat f(x_*) = k(x_*)^{\top}(K + \sigma_n^2 I)^{−1}\pmb y\). This
+should look very familiar-it is exactly the form of the predictive mean
+obtained in eq. (2.23).
+\end{frame}
+
+\begin{frame}{6.2.3 The Relationship of the Regularization View to
+Gaussian Process Prediction}
+\protect\hypertarget{the-relationship-of-the-regularization-view-to-gaussian-process-prediction}{}
+The regularization method returns \(\hat f = argmin_f J[f]\). For a
+Gaussian process predictor we obtain a posterior distribution over
+functions.
+
+In fact we shall see in this section that \(\hat f\) can be viewed as
+the maximum a posteriori (MAP) function under the posterior.
+
+Following Szeliski {[}1987{]} and Poggio and Girosi {[}1990{]} we
+consider
+\(\exp (−J[f]) = \exp\bigg( − \frac \lambda 2 \|P f\|^2\bigg) \times \exp (−Q(\pmb y,\ \pmb f)) \ \ \ \ (6.21)\)
+
+\begin{itemize}
+\item
+  The first term on the RHS is a Gaussian process prior on \(f\)\\
+\item
+  The second is proportional to the likelihood
+\item
+  As \(\hat f\) is the minimizer of \(J[f]\), it is the MAP function.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-12}{}
+To get some intuition for the Gaussian process prior, imagine
+\(f(\pmb x)\) being represented on a grid in \(\pmb x\)-space, so that
+\(f\) is now an (infinite dimensional) vector \(\pmb f\). Thus we obtain
+
+\[
+\|P f\|^2 \simeq \sum^M _{m=0} a_m(D_m\pmb f)^{\top} (D_m \pmb f) =  \pmb f^{\top} (\sum_m a_mD_m ^{\top} D_m)\pmb f
+\]
+
+where \(D_m\) is an appropriate finite-difference approximation of the
+differential operator \(O_m\). Observe that this prior term is a
+quadratic form in \(\pmb f\).
+
+\begin{block}{The MAP relationship}
+\protect\hypertarget{the-map-relationship}{}
+\begin{enumerate}
+\item
+  when \(Q(y, f)\) is quadratic (corresponding to a Gaussian
+  likelihood);
+\item
+  when \(Q(y, f)\) is not quadratic but convex
+\item
+  when \(Q(y, f)\) is not convex.
+\end{enumerate}
+\end{block}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-13}{}
+\begin{block}{The MAP relationship}
+\protect\hypertarget{the-map-relationship-1}{}
+\begin{enumerate}
+\item
+  In case 1 the posterior mean function can be obtained exactly, and the
+  posterior is Gaussian. As the mean of a Gaussian is also its mode this
+  is the MAP solution.
+\item
+  In case 2 we have seen in chapter 3 for classification problems using
+  the logistic, probit or softmax response functions that \(Q(y, f)\) is
+  convex.
+\item
+  In case 3 there will be more than one local minimum of \(J[f]\) under
+  the regularization approach. One could check these minima to find the
+  deepest one. However, in this case the argument for MAP is rather weak
+  (especially if there are multiple optima of similar depth) and
+  suggests the need for a fully Bayesian treatment.
+\end{enumerate}
+\end{block}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-14}{}
+While the regularization solution gives a part of the Gaussian process
+solution, there are the following limitations:
+
+\begin{enumerate}
+\item
+  It does not characterize the uncertainty in the predictions, nor does
+  it handle well multimodality in the posterior.
+\item
+  The analysis is focussed at approximating the first level of Bayesian
+  inference, concerning predictions for \(f\). It is not usually
+  extended to the next level, e.g.~to the computation of the marginal
+  likelihood. The marginal ikelihood is very useful for setting any
+  parameters of the covariance function, and for model comparison (see
+  chapter 5).
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-15}{}
+In addition, we find the specification of smoothness via the penalties
+on derivatives to be not very intuitive. The regularization viewpoint
+can be thought of as directly specifying the inverse covariance rather
+than the covariance.
+
+As marginalization is achieved for a Gaussian distribution directly from
+the covariance (and not the inverse covariance) it seems more natural to
+us to specify the covariance function. Also, while non-stationary
+covariance functions can be obtained from the regularization viewpoint,
+e.g.~by replacing the Lebesgue measure in eq. (6.10) with a non-uniform
+measure \(\mu (\pmb x)\), calculation of the corresponding covariance
+function can then be very difficult.
+\end{frame}
+
+\hypertarget{spline-models}{%
+\section{6.3 Spline Models}\label{spline-models}}
+
+\begin{frame}{6.3 Spline Models}
+In section 6.2 we discussed regularizers which had \(a_0 > 0\) in eq.
+(6.12). We now consider the case when \(a_0 = 0\); in particular we
+consider the regularizer to be of the form \(\|O^mf\|^2\), as defined in
+eq. (6.10). In this case polynomials of degree up to \(m − 1\) are in
+the null space of the regularization operator, in that they are not
+penalized at all.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-16}{}
+In the case that \(\mathcal X = \mathfrak R^D\) we can again use Fourier
+techniques to obtain the Green's function \(G\) corresponding to the
+Euler-Lagrange equation
+\((−1)^m \nabla^{2m} G(\pmb x) = \delta (\pmb x)\). The result, as shown
+by Duchon {[}1977{]} and Meinguet {[}1979{]} is
+
+\[
+G(\pmb x− \pmb x') = 
+\begin{cases}
+c_{m,D}  |\pmb X - \pmb x|^{2m−D} \log |\pmb x −  \pmb x'| 
+&  if\ 2m>D\ and\ even\\
+c_{m,D}  |\pmb X - \pmb x|^{2m−D} & otherwise \ \ \ \ \ (6.22)
+\end{cases}
+\]
+
+where \(c_{m,\ D}\) is a constant (Wahba {[}1990, p.~31{]} gives the
+explicit form). Note that the constraint \(2m > D\) has to be imposed to
+avoid having a Green's function that is singular at the origin.
+
+Explicit calculation of the Green's function for other domains
+\(\mathcal X\) is sometimes possible.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-17}{}
+Because of the null space, a minimizer of the regularization functional
+has the form
+
+\[
+f(\pmb x) = \sum n_{i=1} \alpha_iG(\pmb x,\ \pmb x_i) + \sum^k_{j=1}
+\beta_j h_j(\pmb x) \ \ \ \ (6.23)
+\]
+
+where \(h_1(\pmb x)\), \ldots{} , \(h_k(\pmb x)\) are polynomials that
+span the null space.
+
+The exact values of the coefficients \(\pmb \alpha\) and \(\pmb\beta\)
+for a specific problem can be obtained in an analogous manner to the
+derivation in section 6.2.2;
+
+The solution is equivalent to that given in eq. (2.42). To gain some
+more insight into the form of the Green's function we consider the
+equation \((−1)^m \nabla^{2m} G(\pmb x) = \delta (\pmb x)\) in Fourier
+space, leading to
+\(\tilde G(\pmb s) = (4\pi^2 \pmb s \cdot \pmb s)^{−m}\).
+\(\tilde G(\pmb s)\) plays a role like that of the power spectrum in eq.
+(6.13), but notice that \(\int \tilde G (\pmb s))ds\) is infinite, which
+would imply that the corresponding process has infinite variance.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-18}{}
+The problem is of course that the null space is unpenalized; for example
+any arbitrary constant function can be added to \(f\) without changing
+the regularizer.
+
+Because of the null space we have seen that one cannot obtain a simple
+connection between the spline solution and a corresponding Gaussian
+process problem.
+
+However, by introducing the notion of an intrinsic random function (IRF)
+one can define a generalized covariance;
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-19}{}
+The basic idea is to consider linear combinations of \(f(\pmb x)\) of
+the form \(g(\pmb x) = \sum^k_{i=1} a_i f(\pmb x + \pmb \delta_i)\) for
+which \(g(\pmb x)\) is second-order stationary and where
+\((h_j(\pmb \delta 1)\), \ldots{} , \(h_j(\pmb \delta_k))\pmb a = 0\)
+for \(j = 1,\ ...\ ,\ k\). A careful description of the equivalence of
+spline and IRF prediction is given in Kent and Mardia {[}1994{]}.
+
+The power-law form of
+\(\tilde G (\pmb s)) = (4\pi^2 \pmb s \cdot \pmb s)^{−m}\) means that
+there is no characteristic length-scale for random functions drawn from
+this (improper) prior.
+
+Some authors argue that the lack of a characteristic length-scale is
+appealing. This may sometimes be the case, but if we believe there is an
+appropriate length-scale (or set of length-scales) for a given problem
+but this is unknown in advance, we would argue that a hierarchical
+Bayesian formulation of the problem (as described in chapter 5) would be
+more appropriate.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-20}{}
+Splines were originally introduced for one-dimensional interpolation and
+smoothing problems, and then generalized to the multivariate setting.
+
+Schoenspline interpolation berg {[}1964{]} considered the problem of
+finding the function that minimizes
+\(\int_a^b (f^{(m)} (\pmb x))^2 dx \ \ \ \ (6.24)\), where \(f(m)\)
+denotes the \(m\)th derivative of \(f\), subject to the interpolation
+constraints \(f(x_i) = f_i\), \(x_i \in (a,\ b)\) for
+\(i = 1,\ ...\ ,\ n\) and for \(f\) in an appropriate natural polynomial
+Sobolev space. He showed that the solution is the natural polynomial
+spline, which is a piecewise polynomial of order \(2m − 1\) in each
+interval \([x_i,\ x_{i+1}]\), \(i = 1,\ ... ,\ n − 1\), and of order
+\(m − 1\) in the two outermost intervals.
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-21}{}
+The pieces are joined so that the solution has \(2m − 2\) continuous
+derivatives. Schoenberg also proved that the solution to the univariate
+smoothing problem (see eq. (6.19)) is a natural polynomial spline.
+
+A common choice is \(m = 2\), leading to the cubic spline. One possible
+way of writing this solution is
+\(f(\pmb x) = \sum^1_{j=0} \beta_j x^j + \sum^n_{i=1} \alpha_i(x − x_i)^3_+,\ (\pmb x)_+ = \begin{cases} (x)_+ & if\ x > 0\\ 0 & otherwise \ \ \ \ \ (6.25) \end{cases}\)
+
+It turns out that the coefficients \(\pmb \alpha\) and \(\pmb \beta\)
+can be computed in time \(\mathcal O(n)\) using an algorithm due to
+Reinsch.
+
+Splines were first used in regression problems. However, by using
+generalized linear modelling \textbf{{[}McCullagh and Nelder, 1983{]}}
+they can be extended to classification problems and other non-Gaussian
+likelihoods, as we did for GP classification in section 3.3.
+\end{frame}
+
+\begin{frame}{* 6.3.1 A 1-d Gaussian Process Spline Construction}
+\protect\hypertarget{a-1-d-gaussian-process-spline-construction}{}
+In this section we will further clarify the relationship between splines
+and Gaussian processes by giving a GP construction for the solution of
+the univariate cubic spline smoothing problem whose cost functional is
+
+\[
+\sum^n_{i=1} \big(f(x_i) − y_i\big)^2 + \lambda  \int_0^1 \big(f''(x)\big)^2 dx \ \ \ \ (6.26)
+\]
+
+where the observed data are
+\(\{(x_i,\ y_i)|i = 1,\ ... ,\ n,\ 0 < x_1 < ... < x_n < 1\}\) and
+\(\lambda\) is a smoothing parameter controlling the trade-off between
+the first term, the data-fit, and the second term, the regularizer, or
+complexity penalty.
+
+Recall that the solution is a piece-wise polynomial as in eq. (6.25).
+Following Wahba {[}1978{]}, we consider the random function
+\(g(x) = \sum^1_{j=0} \beta_j x^j + f(x) (6.27)\)
+
+where \(\beta \sim \mathcal N(0,\ \sigma_\beta^2 I)\) and \(f(x)\) is a
+Gaussian process with covariance \(\sigma_f^2 k_{sp} (x,\ x')\), where
+
+\[
+k_{sp}(x,\ x') \stackrel \bigtriangleup = \int_0^1(x − u)+(x' − u)_+ du = \frac {|x − x'|v^2} {2} + \frac {v^3} 3 \ \ \ \ (6.28)
+\]
+
+and \(v = min(x,\ x')\).
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-22}{}
+To complete the analogue of the regularizer in eq. (6.26), we need to
+remove any penalty on polynomial terms in the null space by making the
+prior vague, i.e.~by taking the limit
+\(\sigma_\beta^2 \rightarrow \infty\). Notice that the covariance has
+the form of contributions from explicit basis functions,
+\(\pmb h(\pmb x) = (1,\ x)^{\top}\) and a regular covariance function
+\(k_{sp}(x,\ x')\), a problem which we have already studied in section
+2.7.
+
+Indeed we have computed the limit where the prior becomes vague
+\(\sigma_\beta^2 \rightarrow \infty\), the result is given in eq.
+(2.42).
+
+Plugging into the mean equation from eq. (2.42), we get the predictive
+mean
+\(\bar f(x_*) = \pmb k(x_*)^{\top} K_y^{−1} (\pmb y − H^{\top} \bar \beta) + \pmb h(x_*)^{\top} \bar \beta\ \ \ \ (6.29)\),
+where \(K_y\) is the covariance matrix corresponding to
+\(\sigma_f^2 k_{sp}(x_i,\ x_j) + \sigma_ n^2 \delta_{ij}\) evaluated at
+the training points, \(H\) is the matrix that collects the
+\(\pmb h(x_i)\) vectors at all training points, and
+\(\bar \beta = (HK_y^{−1}H^{\top})^{−1} H K_y^{−1}\pmb y\) is given
+below eq. (2.42).
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-23}{}
+It is not difficult to show that this predictive mean function is a
+piecewise cubic polynomial, since the elements of \(k(x_*)\) are
+piecewise cubic polynomials.
+
+So far \(k_{sp}\) has been produced rather mysteriously ``from the
+hat'';
+
+Shepp {[}1966{]} defined the \(l\)-fold integrated Wiener process as
+\(W_l(\pmb x) = \int_0^1 \frac {(x − u)^l_+} {l!} Z(u)du,\ l = 0,\ 1,\ . . .\ \ \ \ (6.30)\)
+
+where \(Z(u)\) denotes the Gaussian white noise process with covariance
+\(\delta (u−u')\). Note that \(W_0\) is the standard Wiener process.
+
+It is easy to show that \(k_{sp} (x,\ x')\) is the covariance of the
+once-integrated Wiener process by writing \(W_1(x)\) and \(W_1(x')\)
+using eq. (6.30) and taking the expectation using the covariance of the
+white noise process.
+
+Note that \(W_l\) is the solution to the stochastic differential
+equation (SDE) \(X^{(l+1)} = Z\); see Appendix B for further details on
+SDEs.
+
+Thus for the cubic spline we set \(l = 1\) to obtain the SDE
+\(\pmb x'' = Z\), corresponding to the regularizer
+\(\int (f''(x))^2dx\).
+
+We can also give an explicit basis-function construction for the
+covariance function \(k_{sp}\).
+\end{frame}
+
+\begin{frame}{}
+\protect\hypertarget{section-24}{}
+Consider the family of random functions given by
+\(f_N(x) = \frac 1 {\sqrt N} \sum^{N−1}_{i=0} \gamma_i(x − \frac i N)_+ \ \ \ \ (6.31)\)
+
+where \(\pmb \gamma\) is a vector of parameters with
+\(\gamma \sim \mathcal N (\pmb 0,\ I)\). Note that the sum has the form
+of evenly spaced ``ramps'' whose magnitudes are given by the entries in
+the \(\pmb \gamma\) vector.
+
+\[
+E[f_N(x)f_N(x')] = \frac 1 N \sum^{N−1}_{i=0}(x − \frac i N)_+
+(x' − \frac i N)_+\ \ \ \  (6.32)
+\]
+
+Taking the limit \(N \rightarrow \infty\), we obtain eq. (6.28), a
+derivation which is also found in {[}Vapnik, 1998, sec.~11.6{]}.
+
+Notice that the covariance function \(k_{sp}\) given in eq. (6.28)
+corresponds to a Gaussian process which is MS continuous but only once
+MS differentiable.
+
+Thus samples from the prior will be quite ``rough'', although (as noted
+in section 6.1) the posterior mean, eq. (6.25), is smoother.
+
+The constructions above can be generalized to the regularizer
+\(\int (f^{(m)} (x))^2 dx\) by replacing \((x − u)_+\) with
+\((x − u)^{m−1}_+ / (m − 1)!\) in eq. (6.28) and similarly in eq.
+(6.32), and setting \(h(\pmb x) = (1,\ x,\ ... ,\ x_{m−1})^{\top}\).
+
+Thus, we can use a Gaussian process formulation as an alternative to the
+usual spline fitting procedure.
+
+Note that the trade-off parameter \(\lambda\) from eq. (6.26) is now
+given as the ratio \(\sigma_n^2 / \sigma_f^2\). The hyperparameters
+\(\sigma_f^2\) and \(\sigma_n^2\) can be set using the techniques from
+section 5.4.1 by optimizing the marginal likelihood given in eq. (2.45).
+
+In addition to the predictive mean the GP treatment also yields an
+explicit estimate of the noise level and predictive error bars.
+\end{frame}
+
+\end{document}

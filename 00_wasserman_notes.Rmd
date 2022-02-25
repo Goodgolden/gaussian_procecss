@@ -83,7 +83,9 @@ $$
 2. (Glivenko–Cantelli Theorem): $\sup_x |\hat F_n(x) − F(x)| \stackrel {a.s.} \rightarrow 0$.
 
 3. (Dvoretzky–Kiefer–Wolfowitz (DKW) inequality): For any $\epsilon > 0$,
-$P \Big(\sup_x |F(x) − \hat F_n(x)| > \epsilon \Big) \leq 2e^{−2n\epsilon^2} \ \ \ \ (2.5)$
+$$
+P \Big(\sup_x |F(x) − \hat F_n(x)| > \epsilon \Big) \leq 2e^{−2n\epsilon^2} \ \ \ \ (2.5)
+$$
 
 
 
