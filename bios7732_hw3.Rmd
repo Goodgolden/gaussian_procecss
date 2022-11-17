@@ -1,0 +1,546 @@
+---
+title: "homework3"
+author: "randy"
+date: '2022-03-15'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = T)
+
+## tidy packages
+library("tidyverse")
+
+## output and styles
+library("knitr")
+library("tinytex")
+library("bookdown")
+```
+
+# Question 1
+
+Read the paper ‘Probabilistic Principal Component Analysis’ by Tipping and Bishop
+that is available in the PapersForClass folder.
+
+## (a). Implement the EM algorithm in Appendix B of the paper.
+
+How PCA may be viewed as a maximum likelihood procedure based on a probability density model of the observed data. 
+
+This probability model is Gaussian.
+
+```{r}
+
+## function get_empca------------------------------------------------------------
+#' to get the Gaussian kernel pca for a give matrix
+#' @param matX input matrix for pcoa
+#' @param nec how many eigenvalues are required by the user;
+#'            by default as 0, for all the eigenvalues calculated
+#'            under the given tol parameter 
+#' @param tol the tolerance for the calculation accuracy
+#' @result return a list of results:
+#'          $eigen_value the eigen_values for given input matrix
+#'          $eigen_vector the eigen_values for given input matrix
+#'          $rotation the rotated projected matrix 
+get_empca <- function(matX, 
+                     nec = 3,
+                     iter,
+                     tol = 10^-10) {
+  matX <- as.matrix(matX)
+  n <- nrow(matX); n
+  m <- ncol(matX); m
+  
+  X <- t(t(matX - colSums(matX) / n) - 
+            rowSums(matX) / n) + sum(matX) / n^2
+ 
+  S <- 1 / n * t(X) %*% X
+  res <- eigen(S, 
+               # only.values = TRUE,
+               symmetric = TRUE)
+
+  pcv <- res$vectors[, 1:nec]
+  ncv <- res$vectors[, (nec + 1):m]
+  eig <- res$values[1:nec]
+  neig <- res$values[(nec + 1): m]
+  
+  sigma2 <- 1 / (m - nec) * sum(neig)
+  sigma2
+  
+  ## equation 7 W_{ml} = U_q (\Lambda_1 - \sigma^2 I) ^ {1/2} R
+  W0 <- pcv %*% 
+    (diag(eig[1:nec],
+          nrow = nec, 
+          ncol = nec) - 
+       diag(nec)) %*%
+    diag(nec)
+  
+  logL0 <- 0
+  diff <- 1
+  i <- 0
+  diff > tol && i < iter
+  
+  
+  while (diff > tol && i < iter) {
+    
+    E <- sigma2 * diag(nec)
+    # E
+    M <- t(W0) %*% W0 + E
+    # M
+    Minv <- solve(M, tol = 10^-20)
+    # Minv
+    ## equation 29
+    ## W = SW(\sigma^2 I + M^{-1} W^t S W) ^{-1}
+    W1 <- S %*% W0 %*% 
+      solve(E + Minv %*% 
+              t(W0) %*% S %*% W0)
+    # W1
+    
+    ## eqation 30
+    ## \sigma^2 = 1 / m trace(S - S W0 M^{-1} W1^t)
+    
+    Tr <- S - S %*% W0 %*% Minv %*% t(W1)
+    # Tr
+    
+    trace <- sum(diag(as.matrix(Tr)))
+    sigma2 <- 1 / m * trace
+    
+    Xp <- Minv %*% t(W1) %*% t(X)
+    XtXp <- sigma2 * Minv + Xp %*% t(Xp)
+    
+    ## just ignore the C = 1 / 2 \pi m
+    logL1 <- 1 / 2 * sum(diag(XtXp)) + 
+      1 / 2 * sigma2 * X %*% t(X) -
+      1 / sigma2 * t(Xp) %*% t(W1) %*% t(X) + 
+      1 / 2 * sigma2 * sum(diag(t(W1) %*% W1 %*% XtXp)) %>%
+      sum()
+    
+    
+    i <- i + 1
+    diff <- abs(logL0 - logL1)
+  }
+  
+  ## use eigen-decomposition again
+  ## to the new matrix W1
+  Wres <- pracma::orth(W1)
+  res <- eigen(cov(X %*% Wres))
+  pvc <- res$vectors
+  eig <- res$values
+  
+  Wrot <- Wres %*% pvc
+  Xrot <- X %*% Wres
+  
+  return(list(eigval = eig,
+              eigvect = pvc,
+              logL = sum(logL1),
+              sigma2 = sigma2,
+              Xrot = Xrot,
+              Wrot = Wrot))
+}
+
+## testing with matrix A 
+## n < m
+m <- 6
+n <- 10
+a <- rnorm(m * n, 0, 5)
+A <- matrix(a, nrow = m, ncol = n)
+
+
+get_empca(A, nec = 3, iter = 20)
+```
+
+
+## (b). Is equation (7) equivalent to a principal components solution? Explain why or why not.
+
+I guess it will not be the same as the PCA solution, if the latent space dimension is not exactly the same as the sample space. Although it maximize the variance but it is only doing so in a subspace, so I guess it is more like a Varimax rotation after PCA in that latent space.
+
+
+# Question 2
+
+Implement a QR decomposition method using one of the approaches in Section 5.2.
+
+**5.2.7 Classical Gram-Schmidt algorithm**
+
+Theorem 5.2.1 (QR Factorization). If $A \in \mathbb R ^{m \times n}$, then there exists an orthogonal $Q \in \mathbb R^{m \times m}$ and an upper triangular $R \in R^{m \times n}$ so that $A = QR$.
+
+To compute the thin QR factorization $A = Q_1 R_1$ directly.
+if $rank(A) = n$, then we can solve for:
+
+$$
+q_k =  \bigg(a_k - \sum_{i=1}^{k-1} r_{ik} q_{i} \bigg) / r_{kk}
+$$
+we can think of $q_k$ as a unit 2-norm vector in the direction of 
+
+$z_k = a_k - \sum_{i=1}^{k-1}r_{ik} q_{i}$
+
+where to ensure $z_k \in span \{ q_1, ..., q_{k-1} \} ^{\bot}$ we choose $r_{ik} = q^{T}_i a_k, i = 1:k-1$
+
+```{r}
+set.seed(555)
+
+## the function of the QR decomposition
+## with the methods of Gram Schmidt
+get_qr <- function(mat) {
+  if (ncol(mat) > nrow(mat)) {
+    warning(
+    "the number of columns is smaller than the number of rows, 
+    a transposed matrix is applied to this method; 
+    please pay attention to the results")
+    matrix <- t(mat)
+  } else {
+    ## now update the new matrix
+    matrix <- mat
+  }
+  
+  ## now we got the matrix
+  ## with n must be smaller than the m
+  n <- ncol(matrix)
+  m <- nrow(matrix)
+  
+  ## set the matrix with the correct dimensions
+  Q <- matrix(0, nrow = m, ncol = m)
+  R <- matrix(0, nrow = m, ncol = n)
+  R[1, 1] = norm(matrix[, 1], type = "2")
+  Q[, 1] = matrix[, 1] / R[1, 1]
+  
+  ## put the values into the matrix
+  for (k in 2:n) {
+    R[1:(k-1), k] = t(Q[1:m, 1:(k-1)]) %*% matrix[1:m, k]
+    z = matrix[1:m, k] - Q[1:m, 1:k-1] %*% as.matrix(R[1:(k - 1), k])
+    R[k, k] = norm(z, type = "2")
+    Q[1:m, k] = z / R[k, k]
+  }
+  
+  ## for matrix with n > m 
+  ## the results are transposed 
+  ## it is not the correct QR but RtQt
+    if (ncol(mat) > nrow(mat)) {
+    warning(
+    "the results are the transposed R and Q,
+    but in the form of A^t = R^t Q^t")
+    R <- t(R)
+    Q <- t(Q)
+  } 
+  
+  return(list(Q = Q, R = R))
+}
+```
+
+First we check the `get_qr()` with the `base::qr()`, the results are identical when the $rank(A) = n < m$.
+
+```{r}
+## testing with matrix A 
+## n < m
+m <- 6
+n <- 3
+a <- rnorm(m * n, 0, 5)
+A <- matrix(a, nrow = m, ncol = n)
+Get_qr <- get_qr(A)
+Get_qr
+
+A_qr <- qr(A)
+qr.Q(A_qr)
+qr.R(A_qr)
+```
+
+Then, we check $rank(A) = n > m$, there is a problem for the `get_qr()`, it is only possible to get $A^T$.
+
+```{r}
+## testing with matrix B
+## n > m
+m <- 3
+n <- 6
+b <- rnorm(m * n, 0, 5)
+B <- matrix(a, nrow = m, ncol = n)
+Get_qrb <- get_qr(B)
+Get_qrb
+
+B_qr <- qr(B)
+qr.Q(B_qr)
+qr.R(B_qr)
+```
+
+# Question 3
+
+Read the paper "Some Distance Properties of Latent Root and Vector Methods Used in Multivariate Analysis" by Gower that is available in the PapersForClass folder. 
+
+Given an input matrix that represents an $n \times n$ matrix of pairwise similarities, implement the Q-method described in section 3 of the paper.
+
+```{r}
+p <- 20
+n <- 3
+mu <- abs(rnorm(p, 5))
+## to build a semi-positive definite matrix
+## as variance covariance matrix
+A <- matrix(runif(p^2) * 2 - 1, 
+            ncol = p) 
+Sigma <- t(A) %*% A
+
+## simulate X to make sure
+## that there is at least one 
+## positive real eigen value
+X <- MASS::mvrnorm(n, mu = mu, Sigma = Sigma)
+
+## function get_pcoa------------------------------------------------------------
+#' to get the pcoa for a give matrix
+#' @param matrix input matrix for pcoa
+#' @param nec how many eigenvalues are required by the user
+#' @param tol the tolerance for the calculation accuracy
+#' @result return a list of results:
+#'          $eigen_value the eigen_values for given input matrix
+#'          $eigen_vector the eigen_values for given input matrix
+#'          $rotation the rotated projected matrix 
+get_pcoa <- function(matrix, 
+                     nec = 0, 
+                     tol = 10^-4) {
+  X <- as.matrix(matrix)
+  n <- nrow(X)
+  m <- ncol(X)
+  
+  D <- matrix(data = NA, nrow = n, ncol = n)
+  A <- matrix(data = NA, nrow = n, ncol = n)
+  Alpha <- matrix(data = NA, nrow = n, ncol = n)
+  
+  
+  for (i in 1:n) {
+    for (j in 1:n) {
+      D[i, j] = norm(X[i, ] - X[j, ], type = "2")
+      A[i, j] = - 0.5 * D[i, j]^2 
+    }
+  }
+  
+  ## normalization to get Alpha from A
+  ## could have been merged in the earlier for loop
+  for (i in 1:n) {
+    for(j in 1:n) {
+      Alpha[i, j] <- A[i, j] - mean(A[i, ]) - 
+        mean(A[, j]) + mean(A)
+    }
+  }
+  
+  res <- eigen(Alpha, 
+               # only.values = TRUE,
+               symmetric = TRUE)
+  if(nec == 0)
+    nec <- sum(res$values >= tol)
+  
+  if(res$values[nec] < tol)
+      warning(paste0("the first ", nec, 
+                  " largest eigenvalues have at least one value
+                  beyond the setted tolerance!/n"))
+
+  pcv <- t(t(res$vectors[, 1:nec]) / sqrt(res$values[1:nec]))
+  eig <- res$values[1:nec]
+  names(eig) <- paste("Comp.", 1:nec, sep = "")
+  
+  ## after rotation from the original matrix
+  rot <- t(t(X) %*% pcv)
+  return(list(eigen_val = eig, 
+              eigen_vect = pcv,
+              rotation = rot))
+
+}
+
+get_pcoa(X)
+```
+
+
+The PCA focuses on covariance or correlation in the direction of given eigenvector direction; so it tries to combine multiple variables in the minimum number of principle components so that each component explains the most variance. I think it is more often to use for dimension reduction, as such microarray with a lot genes.
+
+PCoA on the other hand focuses on distances (can be different metrics), and it tries to extract the dimensions that account for the maximum distances / similarity. It is more often to be used for hierarchical structures, as such as microbiome studies.
+
+
+
+# Question 4
+
+Read the paper "Nonlinear Component Analysis as a Kernel Eigenvalue Problem." Write a function with the following arguments: 
+
+## (a) $X$, an $n \times p$ matrix of $p$ variables measured on $n$ subjects; 
+
+Here is the matrix $X$ contains two subgroups each contain 500 samples, $n = 500 \times 2$, $p = 2$ for two variables $x1 \& x2$. Different subgroups are labeled in different color, but those information is not used in kernel pca.
+
+
+The data are simulated accordingly from two circles. We can see that in the sample space, it is hard to separate the two group in linear manner. 
+
+
+```{r fig.height=3, fig.width=3, message=FALSE, warning=FALSE}
+set.seed(7732)
+N <- 500
+r1 <- runif(N, min = 0.25, max = 0.5)
+r2 <- runif(N, min = 0.75, max = 1)
+theta <- runif(2 * N, min = 0, max = 1) * 2 * pi
+
+Xmat <- data.frame(R = c(r1, r2),
+                Group = rep(c("A", "B"), each = N),
+                theta) %>%
+  mutate(x1 = R * cos(theta),
+         x2 = R * sin(theta)) 
+
+Xm <- Xmat %>%
+  select(x1, x2)
+
+ggplot(Xmat, aes(x1, x2, color = Group)) +
+  geom_point() + 
+  theme_bw() +
+  theme(legend.position = "none")
+
+```
+
+## (b) kernel, which can be either polynomial or Gaussian (note that each of these requires external parameters).
+
+Based on the arguments, the function should return a list of eigenvalues and associated eigenvectors. 
+
+The Gaussian kernel pca methods with given characteristic length scale.
+
+```{r}
+## function get_kpca------------------------------------------------------------
+#' to get the Gaussian kernel pca for a give matrix
+#' @param matX input matrix for pcoa
+#' @param nec how many eigenvalues are required by the user;
+#'            by default as 0, for all the eigenvalues calculated
+#'            under the given tol parameter 
+#' @param l0 the characteristic length scale / window size for 
+#'           the Gaussian kernel
+#' @param tol the tolerance for the calculation accuracy
+#' @result return a list of results:
+#'          $eigen_value the eigen_values for given input matrix
+#'          $eigen_vector the eigen_values for given input matrix
+#'          $rotation the rotated projected matrix 
+get_kpca <- function(matX, 
+                     nec = 0, 
+                     l0 = 0.5,
+                     tol = 10^-50) {
+  
+  matX <- as.matrix(matX)
+  n <- nrow(matX)
+  m <- ncol(matX)
+  
+  ## get the X re-centered
+  ## standardization for the X
+  X <- t(t(matX - colSums(matX) / n) - 
+            rowSums(matX) / n) + sum(matX) / n^2
+  
+  ## gaussian kernel matrix
+  ## because we standardized the X
+  ## so we do not need to recenter in K_gau
+  K_gau <- matrix(NA, nrow = n, ncol = n)
+  for (i in 1:n) {
+    for (j in 1:n) {
+      d = norm(X[i, ] - X[j, ], type = "2")
+      K_gau[i, j] <- exp(-d^2 / (2 * l0^2)) 
+      }
+  }
+  
+  # Wed Apr  6 10:08:24 2022 ------------------------------
+  ## do I need to recenter here?
+  # K_gau <- t(t(K_gau - colSums(K_gau) / n) - 
+  #           rowSums(K_gau) / n) + sum(K_gau) / n^2
+  
+  ## results from eigen decomposition
+  res <- eigen(K_gau / n, 
+               # only.values = TRUE,
+               symmetric = TRUE)
+  
+  
+  if(nec == 0)
+    nec <- sum(res$values >= tol)
+  
+  if(res$values[nec] < tol)
+      warning(paste0("the first ", nec, 
+                  " largest eigenvalues have at least one value
+                  beyond the setted tolerance!/n"))
+
+  pcv <- t(t(res$vectors[, 1:nec]) / sqrt(res$values[1:nec]))
+  eig <- res$values[1:nec]
+  names(eig) <- paste("Comp.", 1:nec, sep = "")
+  
+  ## after rotation from the original matrix
+  rot <- K_gau %*% pcv
+  
+  
+  return(list(eigen_val = eig, 
+              eigen_vect = pcv,
+              rotation = rot))
+}
+```
+
+```{r}
+## the structure of function results
+## return both eigenvalue and eigenvectors
+## plus the projection matrix toward the feature space
+str(get_kpca(Xm, nec = 5, l0 = 1))
+```
+
+```{r fig.height=3, fig.width=3}
+Xrot <- get_kpca(Xm, nec = 2)$rotation
+Xmat %>%
+  mutate(KPC1 = Xrot[, 1],
+         KPC2 = Xrot[, 2]) %>% 
+  ggplot(aes(KPC1, KPC2, color = factor(Group))) +
+  geom_point() + 
+  theme_bw() +
+  theme(legend.position = "none")
+```
+
+
+We can linearly separate the two groups in the feature space, even though this goal might be extremely hard to achieve, if not impossible, in the sample space. In the function shown above, we solely interested with eigenvalue and eigenvectors for given matrix, but not what the function $\Phi(x)$ looks like. So the kernel trick can be used, to avoid solving the explicit form of $\Phi(x)$.
+
+
+How does this approach relate to principal components analysis
+
+The kernel PCA is working within the $\Phi(x)$ in the feature space, other than the sample space. This works well, especially when we map the data into a high dimensional feature space, which could be very complicated and hard to presented as explicit form in sample space (for example the two circles above, we can separate two groups by only using one kernel PC).
+
+For example, for a classification problem above, different groups of data can be hard to separate  in the sample space, if not impossible in very high dimension. However if we go into the feature space, different groups can be easily separated in a linear method. With the kernel trick we do not exactly need to solve for the explicit form of $\Phi(x)$ but use a pre-defined kernel matrix $K = \Phi^T\Phi$ to do the Eigen-decomposition. By doing this, we hypothetically mapping the input dataset into the feature space, where guaranteed solvable in higher dimension (in above, we have way large sample size than the variable). Then we just apply PCA to this projection matrix (kernel). For PCA, we do the eigen-decomposition in the sample space with all the predictors.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
